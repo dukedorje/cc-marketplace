@@ -71,7 +71,7 @@ Spawn a `decomposer` agent (opus):
 
 ```
 Agent(
-  subagent_type="ultra-research:decomposer",
+  subagent_type="morphist-tools:decomposer",
   model="opus",
   prompt="""
   Research question: {{QUESTION}}
@@ -100,7 +100,7 @@ For each selected hypothesis from decomposition.md, spawn an `investigator` agen
 ```
 # For each hypothesis, fire in parallel:
 Agent(
-  subagent_type="ultra-research:investigator",
+  subagent_type="morphist-tools:investigator",
   model="sonnet",
   prompt="""
   ## Hypothesis Assignment
@@ -141,7 +141,7 @@ Spawn a `synthesizer` agent (opus). Pass it the decomposition and all findings:
 
 ```
 Agent(
-  subagent_type="ultra-research:synthesizer",
+  subagent_type="morphist-tools:synthesizer",
   model="opus",
   prompt="""
   ## Synthesis Task
@@ -269,8 +269,8 @@ Agent(
     Existing codebase has no ORM — greenfield decision.
 
 Follow the ultra-research workflow exactly as defined in the skill.
-The skill uses ultra-research:decomposer, ultra-research:investigator, and
-ultra-research:synthesizer agents. Orchestrate them as described.
+The skill uses morphist-tools:decomposer, morphist-tools:investigator, and
+morphist-tools:synthesizer agents. Orchestrate them as described.
 Write all output to the specified OUTPUT_DIR.
 """,
 )

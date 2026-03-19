@@ -1,0 +1,22 @@
+{
+  "name": "morphist-tools",
+  "version": "1.0.0",
+  "description": "Sprint planning, PRD generation, and multi-agent research — a complete product development toolkit",
+  "author": {
+    "name": "Duke Jones",
+    "url": "https://github.com/dukejones"
+  },
+  "license": "MIT",
+  "keywords": [
+    "sprint",
+    "planning",
+    "prd",
+    "research",
+    "multi-agent",
+    "architecture",
+    "agile",
+    "hypothesis",
+    "synthesis"
+  ],
+  "skills": "./skills/"
+}

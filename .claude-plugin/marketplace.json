@@ -6,26 +6,17 @@
   },
   "metadata": {
     "description": "A curated marketplace of Claude Code plugins — skills, agents, hooks, and MCP integrations",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
     {
-      "name": "sprint-plan",
-      "source": "./plugins/sprint-plan",
-      "description": "Multi-phase sprint planning workflow with Decision Steering, RALPLAN-DR consensus, and cross-sprint intelligence",
-      "version": "0.2.2",
+      "name": "morphist-tools",
+      "source": "./plugins/morphist-tools",
+      "description": "Sprint planning, PRD generation, and multi-agent research — a complete product development toolkit",
+      "version": "1.0.0",
       "category": "productivity",
-      "keywords": ["sprint", "planning", "requirements", "architecture", "stories", "agile", "RALPLAN", "workflow"],
-      "license": "MIT"
-    },
-    {
-      "name": "ultra-research",
-      "source": "./plugins/ultra-research",
-      "description": "Multi-agent research swarm with tree-structured hypothesis exploration, parallel investigation, and synthesized output with source citations",
-      "version": "0.2.0",
-      "category": "productivity",
-      "keywords": ["research", "multi-agent", "hypothesis", "synthesis", "swarm", "deep-research", "analysis"],
+      "keywords": ["sprint", "planning", "prd", "research", "multi-agent", "architecture", "agile", "hypothesis", "synthesis"],
       "license": "MIT"
     }
   ]
