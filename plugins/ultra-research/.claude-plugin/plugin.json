@@ -1,6 +1,6 @@
 {
   "name": "ultra-research",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Multi-agent research swarm with tree-structured hypothesis exploration, parallel investigation, and synthesized output with source citations",
   "author": {
     "name": "Duke Jones",
