@@ -18,6 +18,15 @@
       "category": "examples",
       "keywords": ["example", "template", "starter"],
       "license": "MIT"
+    },
+    {
+      "name": "sprint-plan",
+      "source": "./plugins/sprint-plan",
+      "description": "Multi-phase sprint planning workflow with Decision Steering, RALPLAN-DR consensus, and cross-sprint intelligence",
+      "version": "0.1.0",
+      "category": "productivity",
+      "keywords": ["sprint", "planning", "requirements", "architecture", "stories", "agile", "RALPLAN", "workflow"],
+      "license": "MIT"
     }
   ]
 }

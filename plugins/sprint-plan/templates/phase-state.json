@@ -1,0 +1,24 @@
+{
+  "sprint": "sprint-001",
+  "mode": "thorough",
+  "active": true,
+  "current_phase": "discovery",
+  "steering_mode": "GUIDED",
+  "significance_calibration": [],
+  "decisions_log": [],
+  "refinement_loops": {
+    "requirements_architecture": { "count": 0, "max": 3 }
+  },
+  "ral_passes": {
+    "requirements": 0,
+    "architecture": 0,
+    "epics": 0,
+    "stories": 0,
+    "enrichment": 0
+  },
+  "stale_phases": [],
+  "epics_count": 0,
+  "stories_total": 0,
+  "stories_enriched": 0,
+  "validation_status": "pending"
+}

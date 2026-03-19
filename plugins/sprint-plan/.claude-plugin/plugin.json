@@ -1,0 +1,14 @@
+{
+  "name": "sprint-plan",
+  "version": "0.1.0",
+  "description": "Multi-phase sprint planning workflow with Decision Steering, RALPLAN-DR consensus, and cross-sprint intelligence",
+  "author": {
+    "name": "Duke Jones",
+    "url": "https://github.com/dukejones"
+  },
+  "license": "MIT",
+  "keywords": ["sprint", "planning", "requirements", "architecture", "stories", "agile", "RALPLAN"],
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "hooks": "./hooks/hooks.json"
+}
