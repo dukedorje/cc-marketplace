@@ -18,6 +18,15 @@
       "category": "productivity",
       "keywords": ["sprint", "planning", "requirements", "architecture", "stories", "agile", "RALPLAN", "workflow"],
       "license": "MIT"
+    },
+    {
+      "name": "ultra-research",
+      "source": "./plugins/ultra-research",
+      "description": "Multi-agent research swarm with tree-structured hypothesis exploration, parallel investigation, and synthesized output with source citations",
+      "version": "0.1.0",
+      "category": "productivity",
+      "keywords": ["research", "multi-agent", "hypothesis", "synthesis", "swarm", "deep-research", "analysis"],
+      "license": "MIT"
     }
   ]
 }

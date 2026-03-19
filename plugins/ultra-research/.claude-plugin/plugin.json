@@ -1,0 +1,20 @@
+{
+  "name": "ultra-research",
+  "version": "0.1.0",
+  "description": "Multi-agent research swarm with tree-structured hypothesis exploration, parallel investigation, and synthesized output with source citations",
+  "author": {
+    "name": "Duke Jones",
+    "url": "https://github.com/dukejones"
+  },
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "multi-agent",
+    "hypothesis",
+    "synthesis",
+    "swarm",
+    "deep-research",
+    "analysis"
+  ],
+  "skills": "./skills/"
+}
