@@ -1,5 +1,5 @@
 ---
-name: ultra-research
+name: ultraresearch
 description: >
   Multi-agent research swarm with tree-structured hypothesis exploration and synthesized output.
   Use when a question requires broad exploration, multiple perspectives, or deep investigation.
