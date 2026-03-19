@@ -14,6 +14,13 @@ Or point it at an existing PRD file:
 /sprint-plan path/to/prd.md
 ```
 
+Or generate a structured PRD before planning:
+
+```
+/prd "your product idea here"
+/sprint-plan path/to/prd-my-product.md
+```
+
 For help and usage info:
 
 ```
@@ -28,6 +35,7 @@ Runs a 6-phase workflow powered by specialized AI agents:
 |-------|-------------|
 | **0 - Discovery** | Scans your codebase, detects greenfield vs brownfield, finds existing artifacts |
 | **1 - Requirements** | Expands idea into functional/non-functional requirements (parallel analyst + architect agents) |
+| **1.5 - UX Design (optional)** | Generates component specs, user flows, and wireframes when frontend is detected |
 | **2A - Architecture** | Makes architecture decisions in ADR-lite format with RALPLAN-DR consensus |
 | **2B - Epic Design** | Groups requirements into user-value-focused epics with FR coverage map |
 | **3 - Story Decomposition** | Breaks epics into dev-agent-sized stories with BDD acceptance criteria |
@@ -51,8 +59,9 @@ Runs a 6-phase workflow powered by specialized AI agents:
 | `--fast` | Single-pass, no consensus loops, all decisions auto-made |
 | `--thorough` | Explicit thorough mode (the default, useful for clarity) |
 | `--restart-from=<phase>` | Resume from a specific phase |
+| `--skip-ux` | Skip the optional UX Design Phase (1.5) even when frontend is detected |
 
-Valid restart phases: `discovery`, `requirements`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation`
+Valid restart phases: `discovery`, `requirements`, `ux-design`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation`
 
 ## Output
 
@@ -64,6 +73,7 @@ Everything lands in `.omc/sprint-plan/sprint-NNN/`:
   sprint-001/
     discovery.md                  # Phase 0: project context
     requirements.md               # Phase 1: FRs, NFRs, constraints
+    ux-design.md                  # Phase 1.5: component specs and user flows (optional)
     architecture-decisions.md     # Phase 2A: ADR-lite decisions
     epics.md                      # Phase 2B: epic structure + stories
     stories/                      # Phase 4: enriched story files
@@ -71,6 +81,7 @@ Everything lands in `.omc/sprint-plan/sprint-NNN/`:
       1-2-profile-setup.md
       2-1-dashboard-layout.md
     readiness-report.md           # Phase 5: validation summary
+    retrospective.md              # /retro: sprint retrospective and next-sprint prep
     phase-state.json              # workflow state
   decisions/
     decision-log.md               # cross-sprint decision history
@@ -95,17 +106,45 @@ Use `/ral` to trigger a RALPLAN-DR refinement pass (Planner → Architect → Cr
 /ral architecture
 /ral requirements
 /ral epics
+/ral retro
+/ral prd
 ```
 
 Each phase can be refined up to 2 times (use `--force` to override).
 
 ## After Planning
 
-The enriched story files are designed to feed directly into implementation workflows:
+Execute the validated stories with `/sprint-exec`:
+
+```
+/sprint-exec
+```
+
+This dispatches executor agents for each story — epics run sequentially, stories within each epic run in parallel.
+
+```
+/sprint-exec --epic=2          # run only epic 2
+/sprint-exec --story=1.3       # run (or retry) a single story
+/sprint-exec --dry-run         # preview execution plan without running
+```
+
+Or feed stories into a manual implementation workflow:
 
 ```
 /team ralph
 ```
+
+## After Implementation
+
+Generate a retrospective from the completed sprint:
+
+```
+/retro
+```
+
+Analyzes git history, story Dev Agent Records, and architecture decision adherence to produce a structured retrospective at `.omc/sprint-plan/current/retrospective.md`.
+
+The retrospective is automatically consumed by Phase 0 of the next `/sprint-plan` run.
 
 ## Brownfield Support
 
@@ -117,8 +156,10 @@ For existing codebases, the workflow automatically:
 
 ## Cross-Sprint Intelligence
 
-Sprint 2+ automatically loads:
-- Previous sprint retrospective learnings
+Run `/retro` after each sprint to generate a retrospective. Sprint 2+ automatically loads:
+- Previous sprint retrospective learnings (from `/retro` output)
+- Unfinished work and promoted deferred requirements
+- Architecture evolution proposals from execution experience
 - Active (non-superseded) architecture decisions
 - Patterns and problems from prior story implementations
 

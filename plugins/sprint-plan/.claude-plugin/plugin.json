@@ -1,6 +1,6 @@
 {
   "name": "sprint-plan",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Multi-phase sprint planning workflow with Decision Steering, RALPLAN-DR consensus, and cross-sprint intelligence",
   "author": {
     "name": "Duke Jones",

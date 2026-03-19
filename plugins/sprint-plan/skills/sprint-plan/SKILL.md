@@ -23,7 +23,8 @@ Parse `$ARGUMENTS` for the following:
 2. **Flags**:
    - `--fast`: Single-pass mode. No RALPLAN-DR consensus loops. Decision Steering starts in AUTONOMOUS mode. Refinement loops disabled.
    - `--thorough`: Full consensus mode. RALPLAN-DR active in Phases 2A/2B. Decision Steering starts in GUIDED mode. Refinement loops enabled.
-   - `--restart-from=<phase>`: Resume from a specific phase. Valid values: `discovery`, `requirements`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation`. Skips all phases before the specified one (their artifacts must already exist).
+   - `--skip-ux`: Skip Phase 1.5 (UX Design) even if frontend requirements are detected and no UX artifacts exist.
+   - `--restart-from=<phase>`: Resume from a specific phase. Valid values: `discovery`, `requirements`, `ux-design`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation`. Skips all phases before the specified one (their artifacts must already exist).
 
 If both `--fast` and `--thorough` are provided, `--thorough` wins.
 
@@ -166,6 +167,16 @@ Execute phases sequentially. For each phase:
 - `architect` (opus): Identify technical constraints, integration requirements, infrastructure needs, security requirements.
 - `explore` (haiku): Scan codebase for existing implementations that constrain requirements. **Brownfield only** -- skip this agent for greenfield projects.
 
+**PRD-Status-Aware behavior** (when input is an existing PRD file):
+- Read the PRD's `status` frontmatter field:
+  - `status: validated` → **light-touch mode**: focus on expanding FRs into sprint-ready detail, skip re-validation of goals/personas (treat them as approved). Note in requirements.md that this sprint is based on a validated PRD.
+  - `status: draft` or `status: draft-with-issues` → **full validation mode**: run complete requirements expansion including validating goals, assumptions, personas, and identifying gaps or contradictions in the PRD.
+  - No `status` field or `status: unknown` → default to full validation mode.
+- Read the PRD's `scope_tier` frontmatter field (if present):
+  - Filter FRs to only those tagged `tier: mvp` (or equivalent) for this sprint's scope.
+  - FRs tagged `tier: future` or `tier: v2` are noted in Scope Boundaries → Out of Scope.
+  - If no `scope_tier` tagging exists, include all FRs and note in Open Questions that tier prioritization was not present.
+
 **Steps**:
 1. Read `.omc/sprint-plan/current/discovery.md` (context shedding).
 2. Read the product idea/brief.
@@ -190,6 +201,32 @@ Execute phases sequentially. For each phase:
 
 ---
 
+### Phase 1.5: UX Design (Optional)
+
+**Read phase instructions from `${CLAUDE_SKILL_DIR}/phases/phase-1.5-ux-design.md`**
+
+**Trigger logic** (evaluate after Phase 1 completes):
+1. Read `current/discovery.md` frontmatter.
+2. Check `has_frontend` and `has_ux_artifacts` fields.
+3. **Run Phase 1.5 if ALL of the following are true**:
+   - `has_frontend: true`
+   - `has_ux_artifacts: false`
+   - `--skip-ux` flag is NOT set
+   - Mode is NOT `fast` (AUTONOMOUS steering)
+4. **Skip Phase 1.5** (set `ux_design_phase: "skipped"` in `phase-state.json`) if any condition fails.
+
+**In GUIDED mode**: Present decision point to user before running (see phase instruction file for format). Wait for user response.
+
+**In AUTONOMOUS mode or `--fast`**: Skip Phase 1.5 automatically. UX design is opt-in in fast/autonomous mode.
+
+**Agent**: `designer` (sonnet)
+
+**Output**: `.omc/sprint-plan/current/ux-design.md`
+
+**State update**: Set `ux_design_phase: "complete"` (or `"skipped"`) in `phase-state.json`. Set `current_phase: "ux-design"` when run.
+
+---
+
 ### Phase 2A: Architecture Decisions
 
 **Read phase instructions from `${CLAUDE_SKILL_DIR}/phases/phase-2a-architecture.md`**
@@ -197,7 +234,8 @@ Execute phases sequentially. For each phase:
 **Steps**:
 1. Read `.omc/sprint-plan/current/requirements.md` (context shedding).
 2. Read `.omc/sprint-plan/current/discovery.md` for project context.
-3. If `decisions/active-decisions.md` exists, read it for cross-sprint decision context.
+3. If `current/ux-design.md` exists, read it for frontend component and UX context. Include relevant UX constraints in the architect agent's context (component hierarchy, screen specs, interaction patterns that affect API shape or state management).
+4. If `decisions/active-decisions.md` exists, read it for cross-sprint decision context.
 
 **In thorough mode** -- RALPLAN-DR consensus (max 3 iterations):
 1. Dispatch to `planner` (opus): Propose architecture decisions structured as ADR-lite records covering Data Architecture, Authentication/Security, API/Communication, Frontend Architecture (if applicable), Infrastructure/Deployment.
@@ -310,7 +348,9 @@ Update `phase-state.json`: set `current_phase` to `"epic-design"`, update `epics
 1. Read `.omc/sprint-plan/current/epics.md` (context shedding -- load story stubs).
 2. Read `.omc/sprint-plan/current/architecture-decisions.md`.
 
-3. Process stories in parallel within each epic (sequential across epics to enable forward intelligence):
+3. If `current/ux-design.md` exists, read it (context shedding). It will be used to enrich frontend stories.
+
+4. Process stories in parallel within each epic (sequential across epics to enable forward intelligence):
 
    For each story, dispatch in parallel:
    - `executor` (sonnet): Enrich the story with:
@@ -323,18 +363,19 @@ Update `phase-state.json`: set `current_phase` to `"epic-design"`, update `epics
      - Previous story intelligence (files created, patterns established, problems from prior stories in this epic)
      - For sprint N>1: relevant patterns from previous sprint stories
      - For brownfield: Codebase Context section (existing files to modify, patterns to follow, integration points)
+     - For frontend stories (when story implements a frontend FR and `ux-design.md` exists): add a `## UX Specifications` section with the relevant component specs, screen specifications, and interaction patterns from `ux-design.md`
    - `document-specialist` (sonnet): Research latest versions of referenced technologies, API docs, library compatibility.
 
-4. After enrichment, run an **LLM optimization pass** on each story: review for token efficiency, reduce verbosity, eliminate redundancy, make instructions actionable and unambiguous for dev agents.
+5. After enrichment, run an **LLM optimization pass** on each story: review for token efficiency, reduce verbosity, eliminate redundancy, make instructions actionable and unambiguous for dev agents.
 
-5. Run **adversarial validation checklist** per story:
+6. Run **adversarial validation checklist** per story:
    - Does every acceptance criterion have a matching task?
    - Are scope boundaries explicit?
    - Are architecture decisions referenced?
    - Are there any implicit dependencies?
    - Apply corrections automatically.
 
-6. Write each enriched story to `.omc/sprint-plan/current/stories/{epic_num}-{story_num}-{slug}.md` using the story file template:
+7. Write each enriched story to `.omc/sprint-plan/current/stories/{epic_num}-{story_num}-{slug}.md` using the story file template:
    ```
    ---
    sprint: sprint-{NNN}
@@ -538,6 +579,7 @@ States: GUIDED | AUTONOMOUS
 |-------|----------------|
 | Phase 0 (Intake) | Dormant |
 | Phase 1 (Requirements) | Active -- scope, assumptions, constraints |
+| Phase 1.5 (UX Design) | Active -- UX scope decisions |
 | Phase 2A (Architecture) | Maximally active |
 | Phase 2B (Epic Design) | Active but less frequent |
 | Phase 3 (Story Decomposition) | Dormant |
@@ -569,6 +611,12 @@ When a phase is re-run (via `--restart-from` or refinement loop):
 1. Mark all downstream phases as stale in `phase-state.json`.
 2. Stale phases must be re-run before the workflow can complete.
 3. The orchestrator automatically re-runs stale phases in order.
+
+**Phase chain for stale propagation** (in order):
+`discovery` → `requirements` → `ux-design` → `architecture` → `epic-design` → `story-decomposition` → `story-enrichment` → `validation`
+
+When `requirements` is marked stale, `ux-design` (if it ran) is also marked stale, and all downstream phases are marked stale.
+When `ux-design` is marked stale, `architecture` and all downstream phases are marked stale.
 
 ### 5c. OMC State
 

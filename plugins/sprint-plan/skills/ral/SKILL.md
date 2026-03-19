@@ -15,16 +15,19 @@ You are the `ral` skill for the sprint-plan plugin. You trigger a RALPLAN-DR con
 
 Parse `$ARGUMENTS` for:
 
-1. **Phase name** (required): First positional argument. Valid values: `requirements`, `architecture`, `epics`, `stories`, `enrichment`
+1. **Phase name** (required): First positional argument. Valid values: `requirements`, `architecture`, `epics`, `stories`, `enrichment`, `prd`, `retro`
 2. **`--force` flag** (optional): Bypasses the 2-pass limit on ral invocations
 
 If no phase is provided, respond:
 ```
 Usage: ral <phase> [--force]
 
-Valid phases: requirements, architecture, epics, stories, enrichment
+Valid phases: requirements, architecture, epics, stories, enrichment, prd, retro
 
-Example: ral architecture
+Examples:
+  ral architecture
+  ral prd
+  ral retro
 ```
 
 If an invalid phase is provided, respond with the same usage message and list valid phases.
@@ -44,11 +47,13 @@ Check that the specified phase has been completed. Use this mapping to determine
 
 | Phase Argument | Completed When `current_phase` Is... |
 |----------------|--------------------------------------|
+| prd | Always valid (PRD is a standalone artifact, not gated by current_phase) |
 | requirements | requirements, architecture, epic-design, story-decomposition, story-enrichment, validation |
 | architecture | architecture, epic-design, story-decomposition, story-enrichment, validation |
 | epics | epic-design, story-decomposition, story-enrichment, validation |
 | stories | story-decomposition, story-enrichment, validation |
 | enrichment | story-enrichment, validation |
+| retro | Always valid (retrospective is a terminal artifact, check `retrospective_status: "complete"` in phase-state.json) |
 
 If the phase has NOT been completed, respond:
 ```
@@ -78,11 +83,13 @@ Load ONLY the artifact file for the specified phase. Do not rely on memory of pr
 
 | Phase | Artifact Path |
 |-------|--------------|
+| prd | `.omc/sprint-plan/prd-{slug}.md` (most recent by mtime if no path given) |
 | requirements | `.omc/sprint-plan/current/requirements.md` |
 | architecture | `.omc/sprint-plan/current/architecture-decisions.md` |
 | epics | `.omc/sprint-plan/current/epics.md` |
 | stories | `.omc/sprint-plan/current/epics.md` (stories sections) |
 | enrichment | All files in `.omc/sprint-plan/current/stories/` |
+| retro | `.omc/sprint-plan/current/retrospective.md` |
 
 If the artifact file does not exist, respond:
 ```
@@ -238,11 +245,13 @@ After the refinement pass completes (regardless of whether changes were applied)
 
 | Phase Refined | Phases Marked Stale |
 |--------------|-------------------|
+| prd | None (PRD is upstream of sprint-plan, does not mark sprint phases stale) |
 | requirements | architecture, epic-design, story-decomposition, story-enrichment, validation |
 | architecture | epic-design, story-decomposition, story-enrichment, validation |
 | epics | story-decomposition, story-enrichment, validation |
 | stories | story-enrichment, validation |
 | enrichment | validation |
+| retro | None (retrospective is a terminal artifact) |
 
 Write the updated `phase-state.json` back to `.omc/sprint-plan/current/phase-state.json`.
 
