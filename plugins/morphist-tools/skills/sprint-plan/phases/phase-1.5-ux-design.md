@@ -73,7 +73,7 @@ From requirements.md, focus on:
 
 From discovery.md, focus on:
 - Frontend framework and tech stack (e.g., React, Vue, Next.js)
-- For brownfield: existing component patterns, design system, UI conventions noted in the codebase inventory
+- Existing component patterns, design system, UI conventions noted in the codebase inventory (if any)
 
 Your task: produce UX design artifacts in the following sections:
 

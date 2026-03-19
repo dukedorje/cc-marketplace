@@ -42,22 +42,20 @@ Search `.omc/sprint-plan/` for any previously created planning artifacts:
 
 Record each found artifact and its path in the output under `## Available Artifacts`.
 
-### Step 2: Detect Project Type — Greenfield vs Brownfield
+### Step 2: Detect New Repository
 
-Scan the project working directory for evidence of an existing codebase:
+Scan the project working directory to determine if this is a brand-new repository:
 
-**Indicators of brownfield** (check all of the following):
-- `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `pom.xml`, or similar build manifests
-- `src/`, `lib/`, `app/`, `packages/` directories
-- Non-trivial file count (>10 source files)
-- Existing test directories (`tests/`, `__tests__/`, `spec/`)
-- Database migration files
+**New repo indicators** (ALL must be true):
+- Fewer than 10 source files in the project
+- No build manifests (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `pom.xml`, etc.)
+- No `src/`, `lib/`, `app/`, or `packages/` directories with code
 
 **Classification rule**:
-- Fewer than 3 brownfield indicators → `greenfield`
-- 3 or more brownfield indicators → `brownfield`
+- All indicators true → `new_repo: true`
+- Otherwise → `new_repo: false`
 
-Record the classification and the evidence (list which indicators were found).
+Record the classification. This flag is informational — the codebase inventory (Step 4) always runs regardless.
 
 ### Step 3: Detect Input Quality
 
@@ -71,11 +69,9 @@ Classify the user's provided product idea or brief:
 
 If no input was provided, record `input_quality: raw-idea` and note that the user must provide context before Phase 1 can proceed (flag in Recommendations).
 
-### Step 4: Brownfield — Extract Codebase Inventory
+### Step 4: Extract Codebase Inventory
 
-**Only if `project_type: brownfield`.**
-
-Scan the codebase and produce an "Existing Codebase Inventory":
+Scan the codebase and produce an "Existing Codebase Inventory". This always runs — even for new repos, capturing whatever exists provides useful context for downstream phases.
 
 **Tech Stack**: Identify languages, frameworks, major libraries (read `package.json` dependencies, `pyproject.toml`, `Cargo.toml`, etc.).
 
@@ -147,7 +143,7 @@ Write all findings to `.omc/sprint-plan/current/discovery.md` using the schema b
 project: [name]
 sprint: sprint-[NNN]
 created: [date]
-project_type: greenfield | brownfield
+new_repo: true | false
 input_quality: raw-idea | structured-brief | existing-prd
 has_ux_artifacts: true | false
 has_frontend: true | false
@@ -160,10 +156,10 @@ previous_sprint: sprint-[NNN-1] | null
 ## Input Analysis
 [What was provided, quality assessment, and any gaps. Note if input is too sparse for Phase 1 to proceed without clarification.]
 
-## Project Type Detection
-[Greenfield or brownfield. List specific evidence: which indicators were found and where.]
+## New Repo Detection
+[New repo or existing codebase. Note source file count and presence of build manifests/source directories.]
 
-## Existing Codebase Inventory (brownfield only)
+## Existing Codebase Inventory
 ### Tech Stack
 [Languages, frameworks, libraries with versions where available]
 
@@ -194,7 +190,7 @@ previous_sprint: sprint-[NNN-1] | null
 - "Input quality is raw-idea — Phase 1 analyst agent will expand to include persona/metrics extraction."
 - "No UX artifacts found. Consider providing UX specs before Phase 4."
 - "No product brief provided — Phase 1 cannot proceed until user provides context."
-- "Brownfield: 4 brownfield indicators found. Codebase inventory populated above."
+- "Existing codebase detected. Codebase inventory populated above."
 ]
 ```
 

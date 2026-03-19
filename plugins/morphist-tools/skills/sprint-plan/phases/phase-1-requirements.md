@@ -18,7 +18,7 @@ Three agents run in parallel:
 |---|---|---|
 | `analyst` | opus | Always |
 | `architect` | opus | Always |
-| `explore` | haiku | Brownfield only |
+| `explore` | haiku | Always (skip for new repos with no source files) |
 
 ---
 
@@ -115,7 +115,7 @@ Responsibilities:
    - Availability targets (uptime SLA)
    - Scalability requirements (expected user load, data volume)
    - Maintainability requirements (logging, observability, error handling)
-4. For brownfield: identify **integration constraints** from the existing system (API contracts that cannot change, data models already in production)
+4. Identify **integration constraints** from the existing system, if any (API contracts that cannot change, data models already in production)
 
 **Output format** (to be merged by orchestrator):
 
@@ -140,15 +140,15 @@ Responsibilities:
 #### NFR2: [Title]
 ...
 
-### Integration Constraints (brownfield)
-[APIs, data models, or contracts that cannot change]
+### Integration Constraints
+[APIs, data models, or contracts that cannot change — leave empty if none exist]
 ```
 
 ---
 
-### Explore Agent (haiku) — Brownfield Only
+### Explore Agent (haiku)
 
-**Only dispatched when `project_type: brownfield`.**
+**Always dispatched** (skip only for new repos with no source files — `new_repo: true` in discovery.md).
 
 Responsibilities:
 1. Scan the codebase for **existing implementations** that overlap with the proposed requirements:
@@ -164,7 +164,7 @@ Responsibilities:
 **Output format** (to be merged by orchestrator):
 
 ```markdown
-## Explore Output (Brownfield)
+## Explore Output
 
 ### Existing Feature Overlap
 [Features in the codebase that overlap with proposed requirements — with file paths]
@@ -227,20 +227,20 @@ Your task:
 1. Identify technical constraints (TC1, TC2, ...) — platform, integration, infrastructure, regulatory.
 2. Identify security requirements — authentication, authorization, data protection.
 3. Identify non-functional requirements (NFR1, NFR2, ...) — performance, availability, scalability, observability.
-4. For brownfield: identify integration constraints from the existing system.
+4. Identify integration constraints from the existing system (if any).
 
 Use the output format specified in the Architect Output section of the Phase 1 instructions.
 Return your complete structured output. Do not write any files — the orchestrator will merge outputs.
 """,
 )
 
-# Dispatch explore only for brownfield
-if project_type == "brownfield":
+# Dispatch explore (skip for new repos with no source files)
+if not new_repo:
     explore_result = Agent(
         subagent_type="oh-my-claudecode:explore",
         model="haiku",
         prompt="""
-You are the Explore agent running Phase 1: Requirements Expansion (brownfield scan).
+You are the Explore agent running Phase 1: Requirements Expansion (codebase scan).
 
 Read the following inputs:
 - Discovery output: .omc/sprint-plan/current/discovery.md
@@ -253,6 +253,7 @@ Your task:
 4. Note existing test patterns.
 
 Focus on what CONSTRAINS the new requirements. Be specific — include file paths.
+If the codebase is minimal, note that and keep the output brief.
 
 Use the output format specified in the Explore Output section of the Phase 1 instructions.
 Return your complete structured output. Do not write any files — the orchestrator will merge outputs.
@@ -274,7 +275,7 @@ Return your complete structured output. Do not write any files — the orchestra
 
 After all agents return, the orchestrator merges their outputs into a single `requirements.md`:
 
-1. **Collect all outputs.** Analyst output, architect output, and (if brownfield) explore output.
+1. **Collect all outputs.** Analyst output, architect output, and (if explore agent ran) explore output.
 
 2. **Number requirements sequentially.** Assign final FR numbers (FR1, FR2, ...), NFR numbers, TC numbers across all outputs combined. Do not use separate numbering per agent.
 
@@ -284,7 +285,7 @@ After all agents return, the orchestrator merges their outputs into a single `re
 
 5. **Ensure non-overlap.** Review all FRs and confirm no two FRs describe the same behavior. Split any FR that describes two distinct behaviors.
 
-6. **Populate brownfield sections.** If brownfield, incorporate the explore agent's output into the relevant sections of `requirements.md`.
+6. **Populate codebase context sections.** If the explore agent ran, incorporate its output into the relevant sections of `requirements.md`.
 
 7. **Write `current/requirements.md`** using the output schema below.
 
@@ -381,9 +382,10 @@ input_quality: raw-idea | structured-brief | existing-prd
 [Relevant learnings and constraints from prior sprints that influenced these requirements.
 Reference specific decisions from active-decisions.md that constrain or shape these FRs.]
 
-## Existing Codebase Inventory (brownfield only)
+## Existing Codebase Inventory
 [Summary from Phase 0 and explore agent output, focused on elements that constrain requirements.
-Include: overlapping features, API contracts that must be respected, data models already in use.]
+Include: overlapping features, API contracts that must be respected, data models already in use.
+For new repos, note "New repository — no existing codebase constraints."]
 ```
 
 ---

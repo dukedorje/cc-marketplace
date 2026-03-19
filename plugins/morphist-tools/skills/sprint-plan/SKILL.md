@@ -146,9 +146,9 @@ Execute phases sequentially. For each phase:
 2. Dispatch to `explore` agent with the phase instruction prompt and context.
 3. The agent must:
    - Scan for existing planning artifacts (PRD, architecture docs, research, existing epics, UX specs)
-   - Detect greenfield vs brownfield (check for existing codebase with source files)
+   - Detect new repo vs existing codebase
    - Detect input quality: raw idea (1-3 paragraphs) vs structured brief vs existing PRD with FRs
-   - For brownfield: extract project structure, tech stack, existing patterns into "Existing Codebase Inventory"
+   - Extract project structure, tech stack, existing patterns into "Existing Codebase Inventory"
    - Check for UX artifacts. If frontend requirements detected but no UX artifacts, note: "No UX artifacts found. Consider creating UX specs before proceeding."
    - For sprint N>1: read previous sprint retrospective and active decisions. Regenerate `decisions/active-decisions.md` from `decisions/decision-log.md`.
 4. Write output to `.omc/sprint-plan/current/discovery.md`
@@ -165,7 +165,7 @@ Execute phases sequentially. For each phase:
 **Agents** (dispatch in parallel):
 - `analyst` (opus): Extract testable requirements, identify missing guardrails, scope risks, unvalidated assumptions. For raw idea input (detected in Phase 0): also extract user personas and success metrics.
 - `architect` (opus): Identify technical constraints, integration requirements, infrastructure needs, security requirements.
-- `explore` (haiku): Scan codebase for existing implementations that constrain requirements. **Brownfield only** -- skip this agent for greenfield projects.
+- `explore` (haiku): Scan codebase for existing implementations that constrain requirements. Skip only for new repos with no source files.
 
 **PRD-Status-Aware behavior** (when input is an existing PRD file):
 - Read the PRD's `status` frontmatter field:
@@ -194,7 +194,7 @@ Execute phases sequentially. For each phase:
    - Scope Boundaries (In Scope / Out of Scope)
    - Assumptions (with validation method + impact if wrong)
    - Previous Sprint Intelligence (for sprint N>1)
-   - Existing Codebase Inventory (brownfield only)
+   - Existing Codebase Inventory
 6. Write to `.omc/sprint-plan/current/requirements.md`
 7. Update `phase-state.json`: set `current_phase` to `"requirements"`.
 8. **Decision Steering**: Evaluate the merged requirements for significant decisions (see Section 4). If any HIGH or CRITICAL decisions are found and steering is GUIDED, present them to the user before proceeding.
@@ -239,7 +239,7 @@ Execute phases sequentially. For each phase:
 
 **In thorough mode** -- RALPLAN-DR consensus (max 3 iterations):
 1. Dispatch to `planner` (opus): Propose architecture decisions structured as ADR-lite records covering Data Architecture, Authentication/Security, API/Communication, Frontend Architecture (if applicable), Infrastructure/Deployment.
-2. Dispatch to `architect` (opus): Review planner's proposals for soundness, feasibility, and alignment with existing patterns (brownfield).
+2. Dispatch to `architect` (opus): Review planner's proposals for soundness, feasibility, and alignment with existing patterns.
 3. Dispatch to `critic` (opus): Validate decision quality, identify gaps, challenge weak rationale.
 4. If critic identifies issues: loop back to step 1 with critic's feedback (max 3 iterations).
 5. On consensus or max iterations reached: finalize decisions.
@@ -362,7 +362,7 @@ Update `phase-state.json`: set `current_phase` to `"epic-design"`, update `epics
      - Anti-patterns to avoid
      - Previous story intelligence (files created, patterns established, problems from prior stories in this epic)
      - For sprint N>1: relevant patterns from previous sprint stories
-     - For brownfield: Codebase Context section (existing files to modify, patterns to follow, integration points)
+     - Codebase Context section (existing files to modify, patterns to follow, integration points — "N/A" for new repos)
      - For frontend stories (when story implements a frontend FR and `ux-design.md` exists): add a `## UX Specifications` section with the relevant component specs, screen specifications, and interaction patterns from `ux-design.md`
    - `document-specialist` (sonnet): Research latest versions of referenced technologies, API docs, library compatibility.
 
@@ -412,7 +412,7 @@ Update `phase-state.json`: set `current_phase` to `"epic-design"`, update `epics
    ## Previous Story Intelligence
    (files, patterns, problems from prior stories)
 
-   ## Codebase Context (brownfield)
+   ## Codebase Context
    (existing files, patterns, integration points)
 
    ## Anti-Patterns to Avoid
@@ -665,14 +665,14 @@ Next steps:
 
 ---
 
-## 7. Brownfield Adaptations
+## 7. Codebase Context Handling
 
-When Phase 0 detects a brownfield project (existing codebase):
+Every project gets a codebase inventory and context sections — there is no brownfield/greenfield split. Phase 0 detects `new_repo: true` only for brand-new repositories (< 10 source files, no build manifests or source directories). This flag is informational.
 
-1. **Phase 0**: Produce "Existing Codebase Inventory" section in `discovery.md` -- project structure, tech stack, existing patterns, module boundaries.
-2. **Phase 1**: Dispatch `explore` (haiku) in parallel to scan for existing implementations. Requirements must account for existing features (no duplicating what exists).
-3. **Phase 2A**: Architecture decisions must explicitly state "aligned with existing pattern X" or "diverges from existing pattern X because Y." Divergence requires justification in the ADR.
-4. **Phase 4**: Every story file MUST include a `## Codebase Context` section with existing files to modify, patterns to follow, and integration points. This section is mandatory for brownfield and empty for greenfield.
+1. **Phase 0**: Always produce "Existing Codebase Inventory" section in `discovery.md` — project structure, tech stack, existing patterns, module boundaries.
+2. **Phase 1**: Always dispatch `explore` (haiku) in parallel to scan for existing implementations (skip only for new repos). Requirements must account for existing features.
+3. **Phase 2A**: Architecture decisions must consider existing patterns when they exist — "aligned with existing pattern X" or "diverges from existing pattern X because Y." Divergence requires justification in the ADR.
+4. **Phase 4**: Every story file includes a `## Codebase Context` section with existing files to modify, patterns to follow, and integration points. Write "N/A" if no existing codebase context applies.
 
 ---
 
@@ -689,7 +689,7 @@ If an agent dispatch fails:
 1. Retry once with the same prompt.
 2. If the retry fails, present the error to the user with options:
    - Retry with different parameters
-   - Skip the agent (if optional, e.g., `explore` in Phase 1 for greenfield)
+   - Skip the agent (if optional, e.g., `explore` in Phase 1 for new repos)
    - Abort the workflow
 
 ### 8d. Stale Phase Recovery

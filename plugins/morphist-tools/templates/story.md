@@ -40,7 +40,7 @@ As a [role], I want [action], so that [benefit].
 ### Patterns Established
 ### Problems Encountered
 
-## Codebase Context (brownfield only)
+## Codebase Context
 ### Existing Files to Modify
 ### Patterns to Follow
 ### Integration Points

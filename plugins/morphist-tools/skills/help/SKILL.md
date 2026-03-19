@@ -30,7 +30,7 @@ Transforms a product idea into implementation-ready user stories through 6 autom
 
 | # | Phase | What happens |
 |---|-------|-------------|
-| 0 | Discovery | Scans codebase, detects greenfield/brownfield, finds existing artifacts |
+| 0 | Discovery | Scans codebase, inventories existing code, finds planning artifacts |
 | 1 | Requirements | Expands idea into FRs, NFRs, constraints (parallel agents) |
 | 1.5 | UX Design (optional) | Generates component specs, user flows for frontend projects |
 | 2A | Architecture | Architecture decisions with RALPLAN-DR consensus |

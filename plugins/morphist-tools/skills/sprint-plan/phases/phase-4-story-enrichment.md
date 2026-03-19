@@ -22,7 +22,7 @@ Load from `current/` at phase start (context shedding — load artifacts only, n
 - `current/requirements.md` — FR/NFR source of truth
 - `current/stories/*.md` — previous story files (for backward intelligence when story_num > 1)
 - For sprint N>1: relevant stories from `sprint-{N-1}/stories/` for cross-sprint patterns
-- For brownfield: `current/discovery.md` — existing codebase inventory from Phase 0
+- `current/discovery.md` — existing codebase inventory from Phase 0
 
 ---
 
@@ -40,7 +40,7 @@ Collect the following inputs for this story:
 3. Full `current/requirements.md`
 4. If `story_num > 1`: contents of all previously enriched story files in `current/stories/` — extract "Files Created", "Patterns Established", "Problems Encountered" from their `## Dev Agent Record` and `## Previous Story Intelligence` sections
 5. If sprint N>1: load stories from `sprint-{N-1}/stories/` that share FRs or architecture decisions with this story
-6. If brownfield: load relevant sections of `current/discovery.md` — existing files, patterns, integration points
+6. Load relevant sections of `current/discovery.md` — existing files, patterns, integration points
 
 #### Step 2: Parallel Tech Research
 
@@ -108,13 +108,13 @@ Problems encountered: {problems_from_prior_stories}
 ## Library Versions (from document-specialist research)
 {library_versions_json}
 
-## Brownfield Codebase Context (if applicable)
+## Codebase Context
 {relevant_sections_from_discovery_md}
 
 ## Cross-Sprint Patterns (if sprint N>1)
 {relevant_prior_sprint_story_summaries}
 
-Generate the story file using the schema below. Fill every section. If a section does not apply (e.g., brownfield context for a greenfield project), write "N/A" — do not omit the section header.
+Generate the story file using the schema below. Fill every section. If a section does not apply (e.g., codebase context for a new repo), write "N/A" — do not omit the section header.
 
 {story_file_schema}
 """
@@ -236,13 +236,13 @@ As a [role], I want [action], so that [benefit].
 ### Problems Encountered
 [Issues discovered in prior stories — avoid repeating them]
 
-## Codebase Context (brownfield only)
+## Codebase Context
 ### Existing Files to Modify
-[File paths + what to change]
+[File paths + what to change — "N/A" if new repo]
 ### Patterns to Follow
-[Existing patterns in the codebase this story must align with]
+[Existing patterns in the codebase this story must align with — "N/A" if new repo]
 ### Integration Points
-[APIs, services, or modules this story must integrate with]
+[APIs, services, or modules this story must integrate with — "N/A" if new repo]
 
 ## Anti-Patterns to Avoid
 [Specific pitfalls for this story — not generic advice]

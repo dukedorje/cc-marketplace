@@ -99,7 +99,7 @@ Review each proposed decision for:
 - **Technical soundness**: Will this actually work for the project's requirements?
 - **Constraint completeness**: What downstream effects are missing from the planner's analysis?
 - **Alternative analysis**: Were good alternatives overlooked or dismissed too quickly?
-- **Brownfield alignment** (if applicable): Does this align with existing patterns in the codebase? If it diverges, is the justification compelling?
+- **Existing pattern alignment**: Does this align with existing patterns in the codebase? If it diverges, is the justification compelling? (Skip if new repo with no existing code.)
 
 Challenge weak rationales with steelman antithesis — argue the strongest case for the best alternative before accepting the recommendation.
 
@@ -295,13 +295,13 @@ Use these anchors to calibrate your significance classifications:
 
 {significance_calibration_examples}
 
-## Brownfield Alignment (if applicable)
+## Existing Pattern Alignment
 
-If the project is brownfield, for each decision explicitly state:
+If the project has an existing codebase, for each decision explicitly state:
 - "Aligned with existing pattern: [X]" OR
 - "Diverges from existing pattern: [X] because [Y]"
 
-Divergence requires a compelling justification.
+Divergence requires a compelling justification. For new repos, skip this section.
 
 ## Output
 
@@ -339,7 +339,7 @@ Review each proposed decision for:
 1. **Technical soundness**: Will this actually work for the project's requirements? Are there known failure modes?
 2. **Constraint completeness**: What downstream effects did the planner miss?
 3. **Alternative analysis**: Were good alternatives overlooked or dismissed too quickly?
-4. **Brownfield alignment** (if applicable): Does this align with existing patterns? Is any divergence justified?
+4. **Existing pattern alignment**: Does this align with existing patterns in the codebase? Is any divergence justified? (Skip if new repo.)
 
 For each decision, either:
 - APPROVE with optional notes
