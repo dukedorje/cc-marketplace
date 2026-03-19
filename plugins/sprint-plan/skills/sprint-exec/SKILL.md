@@ -86,7 +86,7 @@ Preserve the existing `execution_log` array if resuming a partial execution.
 
 ### 1f. Register with OMC State
 
-Write to OMC state:
+If OMC state tools are available, register the session (non-blocking — skip if unavailable):
 ```
 state_write({ mode: "sprint-exec", sprint: "{sprint_number}" })
 ```
@@ -131,9 +131,11 @@ Read `current/epics.md` to determine:
 
 Stories are located at:
 ```
-.omc/sprint-plan/current/stories/story-{epic}-{story}.md
+.omc/sprint-plan/current/stories/{epic}-{story}-{slug}.md
 ```
-For example, story 2.3 → `.omc/sprint-plan/current/stories/story-2-3.md`
+For example, story 2.3 "User Authentication" → `.omc/sprint-plan/current/stories/2-3-user-authentication.md`
+
+Use Glob to find story files matching the pattern `current/stories/{epic}-*` for a given epic.
 
 For each story, read its frontmatter to get current `status`.
 
@@ -195,15 +197,6 @@ Instructions:
    - Files created or modified (File List)
 5. Do not modify any section of the story file above the Dev Agent Record.
 """,
-    allowed_tools=[
-        "Read", "Write", "Edit", "Bash", "Glob", "Grep",
-        "mcp__plugin_oh-my-claudecode_t__lsp_hover",
-        "mcp__plugin_oh-my-claudecode_t__lsp_goto_definition",
-        "mcp__plugin_oh-my-claudecode_t__lsp_find_references",
-        "mcp__plugin_oh-my-claudecode_t__lsp_diagnostics",
-        "mcp__plugin_oh-my-claudecode_t__lsp_document_symbols",
-        "mcp__plugin_oh-my-claudecode_t__lsp_workspace_symbols",
-    ],
 )
 ```
 
@@ -305,15 +298,6 @@ Instructions:
    - Files created or modified (File List)
 5. Do not modify any section of the story file above the Dev Agent Record.
 """,
-    allowed_tools=[
-        "Read", "Write", "Edit", "Bash", "Glob", "Grep",
-        "mcp__plugin_oh-my-claudecode_t__lsp_hover",
-        "mcp__plugin_oh-my-claudecode_t__lsp_goto_definition",
-        "mcp__plugin_oh-my-claudecode_t__lsp_find_references",
-        "mcp__plugin_oh-my-claudecode_t__lsp_diagnostics",
-        "mcp__plugin_oh-my-claudecode_t__lsp_document_symbols",
-        "mcp__plugin_oh-my-claudecode_t__lsp_workspace_symbols",
-    ],
 )
 ```
 

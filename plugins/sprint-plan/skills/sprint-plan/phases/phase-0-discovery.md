@@ -222,7 +222,6 @@ Follow the Phase 0 instructions in full:
 Execute all 8 steps in order. Write output to .omc/sprint-plan/current/discovery.md.
 Do not ask for confirmation. Complete the phase and return when done.
 """,
-    allowed_tools=["Read", "Write", "Glob", "Grep", "Bash"],
 )
 ```
 

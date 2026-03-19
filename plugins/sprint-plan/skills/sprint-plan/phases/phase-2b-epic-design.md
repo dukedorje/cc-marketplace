@@ -241,7 +241,6 @@ Include:
 4. Detailed epic sections with all required fields
 5. Placeholder sections for Stories and Epic Health Metrics (filled by Phase 3)
 """,
-    allowed_tools=["Read", "Write", "Glob", "Grep", "Bash"],
 )
 ```
 
@@ -282,7 +281,6 @@ For each epic, mark:
 
 Update .omc/sprint-plan/current/epics.md with your review marks and any proposed modifications.
 """,
-    allowed_tools=["Read", "Write", "Glob", "Grep", "Bash"],
 )
 ```
 
@@ -332,7 +330,6 @@ If all valid: [CRITIC: VALIDATED].
 
 Add summary: ## Consensus: REACHED (iteration {N}) or ## Consensus: NOT REACHED — issues listed above.
 """,
-    allowed_tools=["Read", "Write", "Glob", "Grep", "Bash"],
 )
 ```
 

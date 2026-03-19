@@ -43,7 +43,7 @@ The default `OUTPUT_DIR` depends on how ultra-research was invoked:
 ### Quick Mode
 
 When `MODE = quick`, collapse the workflow to a single pass:
-1. Use `analyst` to decompose into 3 hypotheses max
+1. Use `decomposer` to generate 3 hypotheses max
 2. Explore each with a single agent (no sub-branching, DEPTH forced to 1)
 3. Produce a condensed synthesis (skip verification stage)
 
@@ -67,189 +67,106 @@ and skip completed stages.
 
 ### Stage 1 — Decomposition
 
-Spawn an `analyst` agent (opus):
+Spawn a `decomposer` agent (opus):
 
-1. Parse QUESTION into atomic sub-questions
-2. Generate N candidate hypotheses — err toward inclusion over exclusion
-3. For each hypothesis, assign:
-   - **plausibility**: low / medium / high
-   - **information_value**: what we learn if true vs. false (low / medium / high)
-   - **agent_type**: which specialist is best suited (see agent routing below)
-   - **estimated_effort**: light / medium / heavy
-4. Rank by `information_value × plausibility`, but **do not discard** low-plausibility
-   hypotheses with high information value — these are often the most important
-5. Select top MAX_BRANCHES hypotheses
-6. Write `{{OUTPUT_DIR}}/decomposition.md`:
+```
+Agent(
+  subagent_type="ultra-research:decomposer",
+  model="opus",
+  prompt="""
+  Research question: {{QUESTION}}
+  MAX_BRANCHES: {{MAX_BRANCHES}}
+  {{#if CONTEXT}}
+  ## Caller Context
+  {{CONTEXT}}
+  {{/if}}
 
-```markdown
-# Decomposition: {{QUESTION}}
-
-## Sub-Questions
-1. [atomic question]
-2. [atomic question]
-...
-
-## Hypotheses (ranked)
-
-### H1: [hypothesis title]
-- **Plausibility**: high | **Info Value**: high | **Agent**: document-specialist
-- **Rationale**: Why this hypothesis matters
-- **What we learn if true**: ...
-- **What we learn if false**: ...
-
-### H2: ...
+  Decompose this question into ranked hypotheses following your protocol.
+  Write the output as a single markdown document — I will save it to the output directory.
+  """
+)
 ```
 
-**Failure handling**: If the analyst fails or returns empty, retry once with a
+Save the agent's output to `{{OUTPUT_DIR}}/decomposition.md`.
+
+**Failure handling**: If the decomposer fails or returns empty, retry once with a
 simplified prompt. If it fails again, report the error and stop gracefully.
 
 ### Stage 2 — Exploration (parallel, depth-bounded)
 
-For each selected hypothesis, spawn the appropriate agent **in parallel**
-(respecting MAX_AGENTS cap — queue excess and launch as slots free):
+For each selected hypothesis from decomposition.md, spawn an `investigator` agent
+**in parallel** (respecting MAX_AGENTS cap — queue excess and launch as slots free):
 
-#### Agent Routing
+```
+# For each hypothesis, fire in parallel:
+Agent(
+  subagent_type="ultra-research:investigator",
+  model="sonnet",
+  prompt="""
+  ## Hypothesis Assignment
+  **Title**: {{hypothesis.title}}
+  **Investigation Type**: {{hypothesis.investigation_type}}
+  **Plausibility**: {{hypothesis.plausibility}}
+  **Info Value**: {{hypothesis.information_value}}
+  **Context**: {{hypothesis.rationale}}
 
-| Agent Type             | Model  | Use When                                           |
-| ---------------------- | ------ | -------------------------------------------------- |
-| `document-specialist`  | sonnet | External docs, web search, reference lookup         |
-| `architect`            | opus   | System design implications, tradeoff analysis       |
-| `scientist`            | sonnet | Data analysis, experimentation, benchmarking        |
-| `analyst`              | opus   | Requirements, constraints, hidden assumptions       |
-| `explore`              | haiku  | Codebase search, symbol/file mapping                |
+  DEPTH_REMAINING: {{DEPTH - current_level}}
+  {{#if DEPTH_REMAINING > 0}}
+  You may identify up to 3 sub-hypotheses if needed. Write sub-hypothesis findings
+  to separate documents and note them in your Sub-Hypotheses section.
+  {{else}}
+  Do NOT generate sub-hypotheses. This is the maximum depth.
+  {{/if}}
 
-#### Each Agent Must:
+  Investigate this hypothesis following your protocol. The investigation_type tells
+  you whether to focus on web search, codebase exploration, analysis, or a hybrid.
 
-1. Investigate its assigned hypothesis thoroughly
-2. Write findings to `{{OUTPUT_DIR}}/hypotheses/{{hypothesis-slug}}/findings.md`
-3. **Sub-branching** (only if DEPTH > current level):
-   - Agent may identify at most 3 sub-hypotheses that warrant deeper investigation
-   - Each sub-hypothesis must include a one-sentence justification for why it can't
-     be resolved from current findings
-   - Children write to `{{OUTPUT_DIR}}/hypotheses/{{parent-slug}}/sub/{{child-slug}}/findings.md`
-   - Sub-branches do NOT spawn further children (hard stop at DEPTH)
-4. **Time-box**: If an agent has not produced findings after exploring 3+ sources,
-   it must write what it has and move on — do not block the swarm
-
-#### Findings Document Format
-
-Every `findings.md` MUST include these sections:
-
-```markdown
-# Hypothesis: {{title}}
-
-## Summary
-2-3 sentence verdict. Was the hypothesis supported, refuted, or inconclusive?
-
-## Evidence
-What was found, with specifics. Include code snippets, data points, or quotes
-where applicable.
-
-## Confidence
-low | medium | high — with one sentence justifying the confidence level.
-
-## Sources
-Each source must be typed:
-
-- [1] **file**: `src/auth/middleware.ts:45-67` — "relevant excerpt"
-- [2] **url**: https://docs.example.com/auth — "relevant excerpt or summary"
-- [3] **doc**: hypotheses/sibling-slug/findings.md §Evidence — "cross-reference"
-
-## Open Questions
-What remains unknown or needs human judgment.
-
-## Sub-Hypotheses (if any)
-- [child-slug]: one-sentence description and justification
+  Write your output as a single markdown document — I will save it.
+  """
+)
 ```
 
-### Stage 3 — Synthesis
+Save each agent's output to `{{OUTPUT_DIR}}/hypotheses/{{hypothesis-slug}}/findings.md`.
 
-Spawn an `architect` agent (opus):
+If sub-hypotheses are generated and DEPTH allows, spawn additional investigator agents
+for each sub-hypothesis. Save sub-findings to
+`{{OUTPUT_DIR}}/hypotheses/{{parent-slug}}/sub/{{child-slug}}/findings.md`.
 
-1. Read ALL findings docs from the tree (walk `{{OUTPUT_DIR}}/hypotheses/` recursively)
-2. Cross-reference and identify:
-   - **Convergent findings**: multiple hypotheses point the same direction
-   - **Contradictions**: flag explicitly for human attention
-   - **Gaps**: important questions that no hypothesis addressed
-   - **Surprise findings**: unexpected results with high signal value
-3. Produce `{{OUTPUT_DIR}}/synthesis.md` in the appropriate format:
+**Time-box**: If an investigator has not produced findings after exploring 4+ sources,
+it must write what it has and move on — do not block the swarm.
 
-#### Research Mode Output
+### Stage 3 — Synthesis & Verification
 
-```markdown
-# {{QUESTION}}
+Spawn a `synthesizer` agent (opus). Pass it the decomposition and all findings:
 
-## Executive Summary
-3-5 sentence answer to the original question with confidence level.
+```
+Agent(
+  subagent_type="ultra-research:synthesizer",
+  model="opus",
+  prompt="""
+  ## Synthesis Task
+  **Original Question**: {{QUESTION}}
+  **Mode**: {{MODE}}
+  **Output Directory**: {{OUTPUT_DIR}}
 
-## Key Findings
-Narrative synthesis with inline citations: [1], [2], ...
-Organize by theme, not by hypothesis. Each finding should draw from
-multiple sources where possible.
+  ## Decomposition
+  {{contents of decomposition.md}}
 
-## Analysis
-Cross-cutting themes, contradictions, and confidence assessment.
-Explicitly state what the evidence supports vs. what is speculative.
+  ## Findings
+  {{for each hypothesis, include the full findings.md content with its path}}
 
-## Open Questions
-What remains unresolved. Prioritize by impact.
-
-## Methodology
-Brief description of how many hypotheses explored, agents used, depth reached.
-
-## References
-[1] hypotheses/foo/findings.md §Evidence — "relevant quote or summary"
-[2] hypotheses/bar/sub/baz/findings.md §Summary — "relevant quote"
-[3] https://docs.example.com/page — "external source summary"
-...
+  Follow your synthesis protocol:
+  1. Cross-reference all findings by theme
+  2. Draft the narrative synthesis with inline citations
+  3. Run verification checks (citation audit, coverage, claim validation)
+  4. Write TWO files:
+     - synthesis.md (narrative output with verification section)
+     - summary.json (machine-readable summary)
+  """
+)
 ```
 
-#### Engineering Mode Output
-
-```markdown
-# {{QUESTION}}
-
-## Recommendation
-Clear directional recommendation with rationale and confidence level.
-
-## Action Plan
-1. [Step] — supported by [1], [2]
-2. [Step] — supported by [3]
-...
-Each step must reference at least one finding.
-
-## Risks & Mitigations
-Derived from contradictions and open questions.
-| Risk | Likelihood | Impact | Mitigation |
-| ---- | ---------- | ------ | ---------- |
-
-## Decision Log
-Key decisions made during research and why.
-
-## References
-[Same citation format as research mode]
-```
-
-### Stage 4 — Verification
-
-Spawn a `verifier` agent (sonnet):
-
-1. **Citation audit**: Spot-check that every inline citation [N] in synthesis
-   actually exists in the referenced source doc at the referenced section
-2. **Coverage check**: Verify no hypothesis from Stage 1 was silently dropped —
-   every hypothesis must appear in synthesis or be explicitly noted as unexplored
-3. **Claim validation**: Flag any claims in synthesis that lack supporting citations
-4. **Append** a `## Verification` section to synthesis.md:
-
-```markdown
-## Verification
-- **Citations checked**: N/N valid
-- **Hypotheses covered**: N/N
-- **Unsupported claims**: [list or "none"]
-- **Issues found**: [list or "none"]
-- **Verification status**: PASS | PASS_WITH_WARNINGS | FAIL
-```
-
+The synthesizer handles both synthesis AND verification in a single pass.
 If verification status is FAIL, report issues to the user rather than silently
 patching — the human should decide how to proceed.
 
@@ -328,7 +245,7 @@ After completion, ultra-research guarantees these files exist at `{{OUTPUT_DIR}}
 
 ### Synthesis Stage: summary.json Generation
 
-At the end of Stage 3 (Synthesis), the architect agent MUST also write `summary.json`
+At the end of Stage 3 (Synthesis), the synthesizer agent MUST also write `summary.json`
 alongside `synthesis.md`. Extract the structured fields from the narrative synthesis.
 This is mandatory — agent callers depend on it to decide whether to consume the full
 synthesis or just the summary.
@@ -352,6 +269,8 @@ Agent(
     Existing codebase has no ORM — greenfield decision.
 
 Follow the ultra-research workflow exactly as defined in the skill.
+The skill uses ultra-research:decomposer, ultra-research:investigator, and
+ultra-research:synthesizer agents. Orchestrate them as described.
 Write all output to the specified OUTPUT_DIR.
 """,
 )

@@ -16,5 +16,6 @@
     "deep-research",
     "analysis"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "agents": "./agents/"
 }

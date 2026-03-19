@@ -211,7 +211,6 @@ Your task:
 Use the output format specified in the Analyst Output section of the Phase 1 instructions.
 Return your complete structured output. Do not write any files — the orchestrator will merge outputs.
 """,
-    allowed_tools=["Read"],
 )
 
 architect_result = Agent(
@@ -233,7 +232,6 @@ Your task:
 Use the output format specified in the Architect Output section of the Phase 1 instructions.
 Return your complete structured output. Do not write any files — the orchestrator will merge outputs.
 """,
-    allowed_tools=["Read"],
 )
 
 # Dispatch explore only for brownfield
@@ -259,7 +257,6 @@ Focus on what CONSTRAINS the new requirements. Be specific — include file path
 Use the output format specified in the Explore Output section of the Phase 1 instructions.
 Return your complete structured output. Do not write any files — the orchestrator will merge outputs.
 """,
-        allowed_tools=["Read", "Glob", "Grep"],
     )
 ```
 

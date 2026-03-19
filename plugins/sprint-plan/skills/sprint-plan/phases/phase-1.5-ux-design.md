@@ -159,7 +159,6 @@ Document recurring interaction patterns:
 
 Return your complete structured output. Do not write any files — the orchestrator will write the output.
 """,
-    allowed_tools=["Read"],
 )
 ```
 

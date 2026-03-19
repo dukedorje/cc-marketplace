@@ -42,10 +42,9 @@ The default output location depends on how ultra-research is invoked:
 
 ## How It Works
 
-1. **Decomposition** — An analyst agent breaks the question into ranked hypotheses scored by plausibility and information value.
-2. **Exploration** — Specialist agents (document-specialist, architect, scientist, analyst, explore) investigate hypotheses in parallel with controlled sub-branching.
-3. **Synthesis** — An architect agent cross-references all findings into a unified document with inline citations.
-4. **Verification** — A verifier agent audits citations, checks coverage, and flags unsupported claims.
+1. **Decomposition** — A `decomposer` agent breaks the question into ranked hypotheses scored by plausibility and information value.
+2. **Exploration** — Parallel `investigator` agents explore each hypothesis using web search, codebase analysis, or both, with controlled sub-branching.
+3. **Synthesis & Verification** — A `synthesizer` agent cross-references all findings into a unified document with inline citations, then audits citations, checks coverage, and flags unsupported claims.
 
 ## Output Structure
 
@@ -105,11 +104,10 @@ Full narrative output is always available in `{{OUTPUT_DIR}}/synthesis.md`.
 
 ## Agents Used
 
-| Agent                | Model  | Role                                      |
-| -------------------- | ------ | ----------------------------------------- |
-| `analyst`            | opus   | Decomposition, requirements analysis      |
-| `document-specialist`| sonnet | External docs, web search                 |
-| `architect`          | opus   | Design tradeoffs, synthesis               |
-| `scientist`          | sonnet | Data analysis, benchmarking               |
-| `explore`            | haiku  | Codebase search, file mapping             |
-| `verifier`           | sonnet | Citation audit, coverage check            |
+All agents are defined in this plugin — no external dependencies required.
+
+| Agent           | Model  | Role                                                         |
+| --------------- | ------ | ------------------------------------------------------------ |
+| `decomposer`    | opus   | Breaks question into ranked hypotheses with scoring          |
+| `investigator`  | sonnet | Explores a single hypothesis (web, codebase, analysis, hybrid) |
+| `synthesizer`   | opus   | Cross-references findings, produces narrative, verifies citations |

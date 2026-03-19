@@ -311,7 +311,6 @@ Also append entries to .omc/sprint-plan/decisions/decision-log.md and update .om
 After writing, check: do any decisions invalidate, constrain, or create new requirements not in requirements.md?
 If yes, list the conflicts at the end of the file under ## Requirements Conflicts.
 """,
-    allowed_tools=["Read", "Write", "Glob", "Grep", "Bash"],
 )
 ```
 
@@ -356,7 +355,6 @@ Flag any requirements conflicts not caught by the planner.
 
 Mark each decision: [ARCHITECT: APPROVED], [ARCHITECT: MODIFIED], or [ARCHITECT: REJECTED with alternative].
 """,
-    allowed_tools=["Read", "Write", "Glob", "Grep", "Bash"],
 )
 ```
 
@@ -402,7 +400,6 @@ For each decision, add: [CRITIC: VALIDATED] or [CRITIC: ISSUE — {description}]
 If all decisions validated, add a summary: ## Consensus: REACHED (iteration {N}).
 If issues remain, add: ## Consensus: NOT REACHED — issues listed above.
 """,
-    allowed_tools=["Read", "Write", "Glob", "Grep", "Bash"],
 )
 ```
 

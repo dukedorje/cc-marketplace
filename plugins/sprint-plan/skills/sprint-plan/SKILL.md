@@ -94,9 +94,9 @@ Write `.omc/sprint-plan/current/phase-state.json`:
 
 Set `steering_mode` to `GUIDED` if thorough, `AUTONOMOUS` if fast.
 
-### 2f. Register with OMC State
+### 2f. Register with OMC State (optional)
 
-Use `state_write` to register:
+If OMC state tools (`state_write`) are available, register the session. If unavailable, skip — the workflow uses `phase-state.json` as the primary state store.
 ```json
 {
   "mode": "sprint-plan",
@@ -618,12 +618,14 @@ When a phase is re-run (via `--restart-from` or refinement loop):
 When `requirements` is marked stale, `ux-design` (if it ran) is also marked stale, and all downstream phases are marked stale.
 When `ux-design` is marked stale, `architecture` and all downstream phases are marked stale.
 
-### 5c. OMC State
+### 5c. OMC State (optional)
 
-Use `state_write` and `state_read` with `mode="sprint-plan"` for OMC lifecycle management only:
+If available, use `state_write` and `state_read` with `mode="sprint-plan"` for OMC lifecycle management:
 - `active`: Whether a sprint planning session is in progress
 - `current_sprint`: Which sprint directory is active
 - `session_id`: Current session identifier
+
+If OMC state tools are not available, skip — the workflow functions correctly using `phase-state.json` alone.
 
 **Boundary rule**: `phase-state.json` is NEVER read by OMC hooks. OMC state is NEVER read for phase logic. They are independent.
 
