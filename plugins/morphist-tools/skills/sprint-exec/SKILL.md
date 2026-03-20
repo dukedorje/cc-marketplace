@@ -203,7 +203,9 @@ Instructions:
 
 ### 4c. Post-Completion: Update Story Status
 
-After each story executor completes:
+**IMPORTANT**: Update story status **immediately** as each individual agent returns — do NOT batch updates until the end of the epic. This ensures that if the session is interrupted mid-epic, completed stories are already persisted as `done` and won't be re-executed on resume.
+
+As each story executor completes (regardless of whether other stories in the epic are still running):
 
 1. Read the story file back
 2. Check if the Dev Agent Record section has been filled in
@@ -214,8 +216,8 @@ After each story executor completes:
 4. Update story frontmatter:
    - `status: {done|failed}`
    - `completed_at: {ISO 8601 timestamp}`
-5. Write the updated story file back
-6. Append to `execution_log` in `phase-state.json`:
+5. Write the updated story file back **immediately**
+6. Append to `execution_log` in `phase-state.json` **immediately** (read-modify-write):
    ```json
    {
      "story": "N.M",
@@ -224,6 +226,9 @@ After each story executor completes:
      "completed_at": "..."
    }
    ```
+7. Update `stories_completed` count in `phase-state.json`
+
+Each story's status must be persisted to disk before processing the next agent result. This is the source of truth for resume (section 1d) and for `/sprint-review` to know which stories are reviewable.
 
 ### 4d. Handle Failures Within an Epic
 
