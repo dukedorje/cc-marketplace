@@ -2,7 +2,7 @@
 name: sprint-exec
 description: Execute validated sprint stories by dispatching executor agents. Processes epics sequentially, stories within each epic in parallel. Supports --epic, --story, and --dry-run flags.
 user-invocable: true
-argument-hint: "[--epic=N] [--story=N.M] [--dry-run]"
+argument-hint: "[--epic=N] [--story=N.M] [--dry-run] [--concurrency=N]"
 ---
 
 # sprint-exec: Story Execution Orchestrator
@@ -19,14 +19,14 @@ Read `.omc/sprint-plan/current/readiness-report.md`.
 
 If the file does not exist, halt:
 ```
-No readiness report found. Run /sprint-plan first to complete validation, or run /sprint-plan --restart-from=validation.
+No readiness report found. Run /sprint-plan first to complete validation, or run /sprint-plan --continue to resume where you left off.
 ```
 
 Check the `validation_status` field in the report. It must be `pass` or `pass-with-warnings`.
 
 If `validation_status` is any other value (e.g., `fail`), halt:
 ```
-Sprint has not passed validation. Run `/sprint-plan --restart-from=validation` first.
+Sprint has not passed validation. Run `/sprint-plan --continue` to resume, or `/sprint-plan --restart-from=validation` to re-run validation.
 ```
 
 If `validation_status` is `pass-with-warnings`, display the warnings before proceeding:
@@ -54,6 +54,7 @@ Parse `$ARGUMENTS` for the following optional flags:
 | `--epic=N` | all epics | Execute only epic N |
 | `--story=N.M` | all stories in scope | Execute only story N.M |
 | `--dry-run` | off | Show execution plan without dispatching agents |
+| `--concurrency=N` | unlimited | Max executor agents running simultaneously within an epic |
 
 If `--story=N.M` is specified, `--epic` is inferred from the story number (N).
 
@@ -111,7 +112,7 @@ Epic 2: {epic_title}
   Story 2.1: {story_title} [ready-for-dev] → will execute
   Story 2.2: {story_title} [ready-for-dev] → will execute
 
-Concurrency: stories within each epic run in parallel; epics run sequentially.
+Concurrency: {concurrency_limit or "unlimited"} stories per epic; epics run sequentially.
 To execute: /sprint-exec (remove --dry-run)
 ```
 
@@ -155,7 +156,7 @@ Within the filtered set, apply status filtering:
 
 ## 4. Execution Loop
 
-Process epics SEQUENTIALLY. Within each epic, dispatch ALL eligible stories in PARALLEL.
+Process epics SEQUENTIALLY. Within each epic, dispatch eligible stories in PARALLEL, respecting `--concurrency=N` if set. When concurrency is limited, dispatch up to N stories at once, and as each completes, dispatch the next eligible story until all stories in the epic are done.
 
 ### 4a. Pre-Dispatch: Update Story Status
 
@@ -247,19 +248,91 @@ If ALL stories in an epic fail:
 
 ### 4e. Epic Progress Report
 
-After all stories in an epic complete (or are skipped), report:
+After all stories in an epic complete (or are skipped), output a prominent report:
 
 ```
---- Epic {N} Complete: {epic_title} ---
-Stories: {done_count}/{total_count} done, {failed_count} failed, {blocked_count} skipped (blocked), {already_done_count} skipped (already done)
-{if failed_count > 0}
-Failed stories: {list of story IDs}
-Retry with: /sprint-exec --story=N.M (uses opus model on retry)
-{/if}
-{if not last_epic}
-Next: Epic {N+1}: {next_epic_title}
-{/if}
+═══════════════════════════════════════════════════
+  EPIC {N} COMPLETE: {epic_title}
+═══════════════════════════════════════════════════
+
+  Stories:  {done_count}/{total_count} done
+            {failed_count} failed, {blocked_count} blocked, {already_done_count} already done
+
+  Files changed:
+    {list files from all story Dev Agent Records in this epic}
+
+  {if failed_count > 0}
+  Failed stories:
+    {list each: "Story N.M: {title} — {failure reason from execution_log}"}
+  Retry with: /sprint-exec --story=N.M
+  {/if}
+
+  {if not last_epic}
+  Next: Epic {N+1}: {next_epic_title}
+  Background code review dispatched → .omc/sprint-plan/current/reviews/epic-{N}-review.md
+  {/if}
+═══════════════════════════════════════════════════
 ```
+
+### 4f. Background Code Review (optional)
+
+After reporting epic completion, dispatch a `code-reviewer` agent in the background to review the epic's work while the next epic starts executing. This is non-blocking — execution continues immediately.
+
+Skip this step if the epic had zero completed stories or if all stories failed.
+
+```python
+Agent(
+    subagent_type="oh-my-claudecode:code-reviewer",
+    model="opus",
+    run_in_background=True,
+    prompt="""
+Review the code changes from Epic {N}: {epic_title}.
+
+Sprint artifacts are in .omc/sprint-plan/current/ — read architecture-decisions.md
+and requirements.md for context.
+
+Story files completed in this epic:
+{list of story file paths with status: done}
+
+For each story, read its Dev Agent Record to see what files were created/modified,
+then review those files for:
+- Correctness against acceptance criteria in the story
+- Architecture compliance with decisions in architecture-decisions.md
+- Code quality, test coverage, and potential issues
+
+Write your review to: .omc/sprint-plan/current/reviews/epic-{N}-review.md
+
+Format:
+# Epic {N} Code Review: {epic_title}
+
+## Summary
+[Overall assessment: approved / approved with concerns / needs attention]
+
+## Per-Story Reviews
+### Story N.M: {title}
+- Status: [pass / concerns / fail]
+- Notes: [specific findings]
+
+## Cross-Story Concerns
+[Issues spanning multiple stories: inconsistencies, missing integration, etc.]
+""",
+)
+```
+
+Review results accumulate in `current/reviews/` and are available for the user to check at any time. They do NOT block execution.
+
+### 4g. Notification (optional)
+
+If OMC notification tools are configured (via `/configure-notifications`), send a notification on epic completion. This is non-blocking — skip gracefully if notifications are not set up.
+
+Message format:
+```
+Sprint {sprint_number} — Epic {N} complete: {epic_title}
+{done_count}/{total_count} stories done, {failed_count} failed
+Review: .omc/sprint-plan/current/reviews/epic-{N}-review.md
+```
+
+Also send a notification on full sprint execution completion (section 6).
 
 ---
 

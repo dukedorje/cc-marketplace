@@ -20,7 +20,9 @@ Transforms a product idea into implementation-ready user stories through 6 autom
 /sprint-plan "your product idea here"       # Plan a sprint from an idea
 /sprint-plan path/to/prd.md                 # Plan from an existing PRD
 /sprint-plan --fast "quick prototype"       # Fast single-pass mode
-/sprint-plan --restart-from=architecture    # Resume from a phase
+/sprint-plan --continue                     # Resume where you left off
+/sprint-plan --continue=architecture       # Resume from after architecture
+/sprint-plan --restart-from=architecture   # Redo architecture and downstream
 /sprint-exec                                # Execute stories with dev agents
 /sprint-exec --dry-run                      # Preview execution plan
 /retro                                      # Generate sprint retrospective
@@ -51,7 +53,9 @@ Transforms a product idea into implementation-ready user stories through 6 autom
 | `--fast` | Single-pass mode, no consensus loops |
 | `--thorough` | Explicit thorough mode (default) |
 | `--skip-ux` | Skip the optional UX Design phase (Phase 1.5) |
-| `--restart-from=<phase>` | Resume from: `discovery`, `requirements`, `ux-design`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation` |
+| `--continue` | Resume from next incomplete phase (auto-detected from phase-state.json) |
+| `--continue=<phase>` | Resume from the phase after the specified one |
+| `--restart-from=<phase>` | Re-run a phase and all downstream: `discovery`, `requirements`, `ux-design`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation` |
 
 ### Output
 
@@ -78,7 +82,9 @@ Use `/ral <phase>` to refine any phase output with a Planner→Architect→Criti
 
 Execute stories with dev agents: `/sprint-exec`
 
-Options: `--epic=N` (single epic), `--story=N.M` (single story), `--dry-run` (preview)
+Options: `--epic=N` (single epic), `--story=N.M` (single story), `--dry-run` (preview), `--concurrency=N` (limit parallel agents)
+
+After each epic completes, a background code review is dispatched to `.omc/sprint-plan/current/reviews/`.
 
 ### After Implementation
 

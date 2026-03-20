@@ -2,7 +2,7 @@
 name: sprint-plan
 description: Multi-phase sprint planning workflow that transforms product ideas into implementation-ready user stories with architecture decisions, requirements expansion, and adversarial validation
 user-invocable: true
-argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--restart-from=phase]"
+argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--continue[=phase]] [--restart-from=phase]"
 ---
 
 # Sprint Plan Orchestrator
@@ -24,9 +24,11 @@ Parse `$ARGUMENTS` for the following:
    - `--fast`: Single-pass mode. No RALPLAN-DR consensus loops. Decision Steering starts in AUTONOMOUS mode. Refinement loops disabled.
    - `--thorough`: Full consensus mode. RALPLAN-DR active in Phases 2A/2B. Decision Steering starts in GUIDED mode. Refinement loops enabled.
    - `--skip-ux`: Skip Phase 1.5 (UX Design) even if frontend requirements are detected and no UX artifacts exist.
-   - `--restart-from=<phase>`: Resume from a specific phase. Valid values: `discovery`, `requirements`, `ux-design`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation`. Skips all phases before the specified one (their artifacts must already exist).
+   - `--continue`: Resume the current sprint from the next incomplete phase. Reads `phase-state.json` to auto-detect where to pick up. Optionally accepts a phase name (`--continue=<phase>`) to resume from a specific phase without re-running it.
+   - `--restart-from=<phase>`: Re-run a specific phase and everything downstream. Use this when you want to redo a completed phase. Valid values: `discovery`, `requirements`, `ux-design`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation`. Marks the specified phase and all downstream phases as stale.
 
 If both `--fast` and `--thorough` are provided, `--thorough` wins.
+If both `--continue` and `--restart-from` are provided, `--restart-from` wins (it's the more specific intent).
 
 Store the parsed input for use throughout the workflow.
 
@@ -36,12 +38,16 @@ Store the parsed input for use throughout the workflow.
 
 ### 2a. Determine Sprint Number
 
+**Skip this step if `--continue` or `--restart-from` is set** — those flags resume an existing sprint (see 2g/2h).
+
 1. Check `.omc/sprint-plan/` for existing `sprint-NNN/` directories.
 2. If none exist, this is sprint 1 (`sprint-001`).
 3. If directories exist, increment: find the highest NNN and use NNN+1.
 4. Store the sprint number (zero-padded 3 digits).
 
 ### 2b. Create Sprint Directory
+
+**Skip this step if `--continue` or `--restart-from` is set.**
 
 ```bash
 mkdir -p .omc/sprint-plan/sprint-{NNN}/stories
@@ -50,10 +56,25 @@ mkdir -p .omc/sprint-plan/decisions
 
 ### 2c. Update Symlink
 
+**Skip this step if `--continue` or `--restart-from` is set** — handled in 2g/2h.
+
 ```bash
 rm -f .omc/sprint-plan/current
 ln -s sprint-{NNN} .omc/sprint-plan/current
 ```
+
+### 2c2. Write AGENTS.md
+
+Write `.omc/sprint-plan/AGENTS.md` (create or overwrite). This is a static pointer so any agent working in the repo knows where sprint artifacts live:
+
+```markdown
+# Sprint Plan
+
+Sprint planning artifacts are in `.omc/sprint-plan/current/` (symlink to active sprint).
+Refer to files there for architecture decisions, requirements, story specs, and execution context.
+```
+
+This file is written once and does not need to be kept in sync — the `current` symlink handles resolution.
 
 ### 2d. Determine Mode
 
@@ -106,16 +127,37 @@ If OMC state tools (`state_write`) are available, register the session. If unava
 }
 ```
 
-### 2g. Handle --restart-from
+### 2g. Handle --continue
+
+If `--continue` is specified (with or without a phase argument):
+
+1. Find the most recent sprint directory (highest `sprint-NNN/`). Do NOT create a new sprint directory — this resumes an existing one.
+2. Read `phase-state.json` from that sprint.
+3. **Without a phase argument** (`--continue`):
+   - Read `current_phase` from `phase-state.json`.
+   - Determine the next phase in the chain after `current_phase`. That is the resume point.
+   - If `current_phase` is `"validation"`, report: "Sprint {NNN} is already complete."
+4. **With a phase argument** (`--continue=<phase>`):
+   - Verify the artifact for the specified phase already exists (it was completed previously).
+   - The resume point is the next phase after the specified one.
+5. Update `current_phase` in `phase-state.json` to the resume point.
+6. Update the `current` symlink to point to this sprint directory.
+7. Skip directly to the resume phase in the orchestration loop below.
+
+Report to user: "Resuming sprint {NNN} from Phase {X}: {phase name}."
+
+### 2h. Handle --restart-from
 
 If `--restart-from=<phase>` is specified:
-1. Verify the sprint directory and `phase-state.json` already exist.
-2. Verify all artifact files for phases BEFORE the restart phase exist.
-3. Update `current_phase` in `phase-state.json` to the restart phase.
-4. Clear the restart phase and all downstream phases from `stale_phases`.
-5. Skip directly to the specified phase in the orchestration loop below.
+1. Find the most recent sprint directory (highest `sprint-NNN/`). Do NOT create a new sprint directory.
+2. Read `phase-state.json` from that sprint.
+3. Verify all artifact files for phases BEFORE the restart phase exist.
+4. Update `current_phase` in `phase-state.json` to the restart phase.
+5. Mark the restart phase and all downstream phases as stale in `stale_phases`.
+6. Update the `current` symlink to point to this sprint directory.
+7. Skip directly to the specified phase in the orchestration loop below.
 
-Report to user: "Sprint {NNN} initialized in {mode} mode. Starting from Phase {X}."
+Report to user: "Restarting sprint {NNN} from Phase {X}: {phase name}. Downstream phases marked stale."
 
 ---
 
@@ -607,7 +649,7 @@ This is the **single source of truth** for all workflow state. Update it after e
 
 ### 5b. Stale Phase Tracking
 
-When a phase is re-run (via `--restart-from` or refinement loop):
+When a phase is re-run (via `--restart-from`, `--continue`, or refinement loop):
 1. Mark all downstream phases as stale in `phase-state.json`.
 2. Stale phases must be re-run before the workflow can complete.
 3. The orchestrator automatically re-runs stale phases in order.
@@ -659,6 +701,7 @@ Readiness report: .omc/sprint-plan/current/readiness-report.md
 
 Next steps:
 - Review stories in .omc/sprint-plan/current/stories/
+- Use `/sprint-plan --continue` to resume after clearing context
 - Use `ral <phase>` to refine any phase
 - Begin implementation with /team ralph
 ```
@@ -682,7 +725,7 @@ Every project gets a codebase inventory and context sections — there is no bro
 Any phase can be re-run from scratch. Re-running a phase overwrites its output file. Downstream phases are marked stale in `phase-state.json` and must be re-run.
 
 ### 8b. Restart
-`--restart-from=<phase>` skips completed phases. Verify prerequisite artifacts exist before starting.
+`--continue` resumes from the next incomplete phase (auto-detected or explicit). `--restart-from=<phase>` re-runs a completed phase and marks downstream as stale. Both verify prerequisite artifacts exist before starting.
 
 ### 8c. Agent Failure
 If an agent dispatch fails:
