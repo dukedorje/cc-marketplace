@@ -86,6 +86,8 @@ Options: `--epic=N` (single epic), `--story=N.M` (single story), `--dry-run` (pr
 
 After each epic completes, a background code review is dispatched to `.omc/sprint-plan/current/reviews/`.
 
+Review epic implementations manually at any time: `/sprint-review --epic=N` or `/sprint-review --all`.
+
 ### After Implementation
 
 Generate a sprint retrospective: `/retro`

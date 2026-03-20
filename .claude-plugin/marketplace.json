@@ -14,7 +14,7 @@
       "name": "morphist-tools",
       "source": "./plugins/morphist-tools",
       "description": "Sprint planning, PRD generation, and multi-agent research — a complete product development toolkit",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "category": "productivity",
       "keywords": ["sprint", "planning", "prd", "research", "multi-agent", "architecture", "agile", "hypothesis", "synthesis"],
       "license": "MIT"

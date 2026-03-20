@@ -83,4 +83,5 @@ This loads the plugin from source. The local copy takes precedence over any inst
 | `ral` | RALPLAN-DR refinement pass on any phase |
 | `retro` | Sprint retrospective generation |
 | `ultraresearch` | Multi-agent research swarm |
+| `sprint-review` | Review epic implementations against specs and architecture |
 | `help` | Sprint-plan usage guide |

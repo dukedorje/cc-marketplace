@@ -276,50 +276,13 @@ After all stories in an epic complete (or are skipped), output a prominent repor
 
 ### 4f. Background Code Review (optional)
 
-After reporting epic completion, dispatch a `code-reviewer` agent in the background to review the epic's work while the next epic starts executing. This is non-blocking — execution continues immediately.
+After reporting epic completion, dispatch the `sprint-review` skill in the background to review the epic's work while the next epic starts executing. This is non-blocking — execution continues immediately.
 
 Skip this step if the epic had zero completed stories or if all stories failed.
 
-```python
-Agent(
-    subagent_type="oh-my-claudecode:code-reviewer",
-    model="opus",
-    run_in_background=True,
-    prompt="""
-Review the code changes from Epic {N}: {epic_title}.
+This is equivalent to running `/sprint-review --epic={N}` in the background. Use the same agent dispatch defined in the sprint-review skill (section 3), with `run_in_background=True`.
 
-Sprint artifacts are in .omc/sprint-plan/current/ — read architecture-decisions.md
-and requirements.md for context.
-
-Story files completed in this epic:
-{list of story file paths with status: done}
-
-For each story, read its Dev Agent Record to see what files were created/modified,
-then review those files for:
-- Correctness against acceptance criteria in the story
-- Architecture compliance with decisions in architecture-decisions.md
-- Code quality, test coverage, and potential issues
-
-Write your review to: .omc/sprint-plan/current/reviews/epic-{N}-review.md
-
-Format:
-# Epic {N} Code Review: {epic_title}
-
-## Summary
-[Overall assessment: approved / approved with concerns / needs attention]
-
-## Per-Story Reviews
-### Story N.M: {title}
-- Status: [pass / concerns / fail]
-- Notes: [specific findings]
-
-## Cross-Story Concerns
-[Issues spanning multiple stories: inconsistencies, missing integration, etc.]
-""",
-)
-```
-
-Review results accumulate in `current/reviews/` and are available for the user to check at any time. They do NOT block execution.
+Review results accumulate in `current/reviews/` and are available for the user to check at any time. They do NOT block execution. The user can also run `/sprint-review` manually at any point.
 
 ### 4g. Notification (optional)
 
