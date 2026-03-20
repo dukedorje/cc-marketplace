@@ -210,25 +210,41 @@ As each story executor completes (regardless of whether other stories in the epi
 1. Read the story file back
 2. Check if the Dev Agent Record section has been filled in
    - If the Dev Agent Record is still empty or missing content: write a note in the Completion Notes field: `"Agent completed without filling Dev Agent Record"`
-3. Determine outcome:
+3. **Done-validation gate** — verify the agent actually produced work:
+   a. Extract the File List from the Dev Agent Record
+   b. If the File List is empty, missing, or contains no entries:
+      - Check git status for any uncommitted changes attributable to this story
+      - If still no files found: outcome = `failed`
+      - Add to Completion Notes: `"VALIDATION FAILED: Agent reported completion but created/modified zero files"`
+   c. If the File List has entries, spot-check that at least one listed file actually exists on disk
+      - If none of the listed files exist: outcome = `failed`
+      - Add to Completion Notes: `"VALIDATION FAILED: Dev Agent Record lists files that do not exist"`
+   d. Check that acceptance criteria have corresponding implementation:
+      - Count the tasks/subtasks in the story — if all checkboxes are unchecked AND no files were modified, this is a false completion
+4. Determine final outcome:
    - If executor reported failure or threw an error: outcome = `failed`
+   - If done-validation gate failed (step 3): outcome = `failed`
    - Otherwise: outcome = `done`
-4. Update story frontmatter:
+5. Update story frontmatter:
    - `status: {done|failed}`
    - `completed_at: {ISO 8601 timestamp}`
-5. Write the updated story file back **immediately**
-6. Append to `execution_log` in `phase-state.json` **immediately** (read-modify-write):
+   - If validation failed: `validation_failure: {reason from step 3}`
+6. Write the updated story file back **immediately**
+7. Append to `execution_log` in `phase-state.json` **immediately** (read-modify-write):
    ```json
    {
      "story": "N.M",
-     "status": "done",
+     "status": "done|failed",
      "started_at": "...",
-     "completed_at": "..."
+     "completed_at": "...",
+     "validation_failure": null | "zero files created" | "listed files do not exist"
    }
    ```
-7. Update `stories_completed` count in `phase-state.json`
+8. Update `stories_completed` count in `phase-state.json`
 
 Each story's status must be persisted to disk before processing the next agent result. This is the source of truth for resume (section 1d) and for `/sprint-review` to know which stories are reviewable.
+
+Stories that fail done-validation are treated identically to executor failures — they appear in the epic progress report as failed and can be retried with `/sprint-exec --story=N.M`.
 
 ### 4d. Handle Failures Within an Epic
 

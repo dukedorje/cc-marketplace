@@ -148,7 +148,19 @@ Wait for all three agents to complete before proceeding.
 
 ---
 
-## 4. Generate Retrospective
+## 4. Full-Sprint Reconciliation
+
+Before generating the retrospective, run a full-sprint code style reconciliation. This detects cross-epic inconsistencies introduced by parallel agent execution.
+
+Equivalent to dispatching `/reconcile --all`. This runs in **GUIDED mode** — contentious choices (high severity) are presented to the user as elicitations, similar to Decision Steering in sprint-plan.
+
+After reconciliation completes, read the report at `.omc/sprint-plan/current/reviews/reconciliation-full-sprint.md` and pass it as additional input to the retrospective writer (section 5). The findings should appear in the retrospective's "Patterns Discovered" section.
+
+If no inconsistencies are found, note "Code reconciliation: no cross-epic style issues detected" and proceed.
+
+---
+
+## 5. Generate Retrospective
 
 Dispatch a `writer` (sonnet) agent with all collected analysis outputs to generate the retrospective document:
 
@@ -168,6 +180,9 @@ Sprint start: {created_date}
 
 ### Architecture Decision Review
 {architecture_decision_review_output}
+
+### Code Reconciliation
+{reconciliation_report_from_section_4_or_"no cross-epic style issues detected"}
 
 ### Original Requirements Summary
 {brief summary of requirements.md}
@@ -281,7 +296,7 @@ Write the completed retrospective to `.omc/sprint-plan/current/retrospective.md`
 
 ---
 
-## 5. Update Phase State
+## 6. Update Phase State
 
 After the retrospective is written:
 
@@ -291,7 +306,7 @@ After the retrospective is written:
 
 ---
 
-## 6. Report Completion
+## 7. Report Completion
 
 Print the completion summary:
 
@@ -317,7 +332,7 @@ Run /sprint-plan to start the next sprint — it will automatically consume this
 
 ---
 
-## 7. Cross-Sprint Intelligence Note
+## 8. Cross-Sprint Intelligence Note
 
 The retrospective at `.omc/sprint-plan/current/retrospective.md` is automatically consumed by Phase 0 of the next sprint. When the next `/sprint-plan` run completes Phase 0 (discovery), it reads `sprint-{N-1}/retrospective.md` (after the current directory is archived) and uses it to:
 - Pre-populate the requirements phase with unfinished work
@@ -329,6 +344,6 @@ No additional wiring is needed.
 
 ---
 
-## 8. RAL Support
+## 9. RAL Support
 
 The `/ral retro` command targets this artifact at `.omc/sprint-plan/current/retrospective.md`. The `retro` phase is terminal — refining it does NOT mark any downstream phases stale.

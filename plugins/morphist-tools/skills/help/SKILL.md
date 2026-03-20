@@ -88,6 +88,8 @@ After each epic completes, a background code review is dispatched to `.omc/sprin
 
 Review epic implementations manually at any time: `/sprint-review --epic=N` or `/sprint-review --all`.
 
+Reconcile code style across parallel agent work: `/reconcile --epic=N` or `/reconcile --all`. Auto-runs during reviews and retro.
+
 ### After Implementation
 
 Generate a sprint retrospective: `/retro`

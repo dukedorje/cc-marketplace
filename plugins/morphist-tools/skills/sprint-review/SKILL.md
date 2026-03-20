@@ -147,7 +147,19 @@ Use this format:
 
 ---
 
-## 4. Report Results
+## 4. Per-Epic Reconciliation
+
+After each epic's code review completes, dispatch a background reconciliation pass for that epic. This checks for code style inconsistencies across stories within the epic.
+
+Equivalent to `/reconcile --epic={N} --auto` with `run_in_background=True`. Auto mode is used here because the full-sprint reconciliation during `/retro` handles contentious cross-epic issues with user elicitation.
+
+Skip if the epic had fewer than 2 completed stories (nothing to reconcile).
+
+Reconciliation report lands in `.omc/sprint-plan/current/reviews/reconciliation-epic-{N}.md`.
+
+---
+
+## 5. Report Results
 
 After all reviews complete, present a summary to the user:
 
@@ -172,6 +184,6 @@ After all reviews complete, present a summary to the user:
 
 ---
 
-## 5. Integration with sprint-exec
+## 6. Integration with sprint-exec
 
 When `sprint-exec` dispatches this skill after an epic completes (section 4f), it calls the equivalent of `/sprint-review --epic=N` with `run_in_background=True`. The sprint-exec orchestrator should use the same agent dispatch shown in section 3, not a separate implementation.
