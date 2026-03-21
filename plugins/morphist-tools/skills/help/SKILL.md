@@ -1,6 +1,6 @@
 ---
-name: sprint-plan-help
-description: Show usage information for the sprint-plan plugin. Triggers on "how do I use sprint-plan", "sprint-plan help", or "what does sprint-plan do".
+name: help
+description: Show complete morphist-tools skill reference. Triggers on "help", "how do I use morphist-tools", "what skills are available", or "sprint-plan help".
 user-invocable: true
 argument-hint: ""
 ---
