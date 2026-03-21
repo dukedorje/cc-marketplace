@@ -92,5 +92,6 @@ This loads the plugin from source. The local copy takes precedence over any inst
 | `status` | Quick sprint overview: phase, artifacts, statuses (alias for update-status --show) |
 | `update-status` | Manually view/update epic and story statuses |
 | `replan` | Scoped mid-sprint replanning for broken assumptions |
+| `verify` | Quick independent epic completion check (auto-runs between epics) |
 | `audit-story` | Validate story completion, gap analysis, work plans (--tdd for test gates) |
 | `help` | Sprint-plan usage guide |

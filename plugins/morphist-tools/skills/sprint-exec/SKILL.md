@@ -347,7 +347,7 @@ This must happen **before** the progress report so that the persisted state is a
 
 After updating epic status, check whether any failed stories in this epic have architectural blockers — i.e., `blocker_type` is `library_incompatible`, `architecture_mismatch`, or `dependency_missing`.
 
-If there are **no architectural blockers**, skip to 4h (Epic Progress Report).
+If there are **no architectural blockers**, skip to 4h (Verification Gate).
 
 If there **are** architectural blockers:
 - If `--full-auto`: automatically choose option 3 (accept partial) for each blocker. Log the auto-decision to `execution_log`:
@@ -428,7 +428,35 @@ Based on user response:
 
 After processing all architectural blockers for the epic, continue to 4h.
 
-### 4h. Epic Progress Report
+### 4h. Verification Gate
+
+After blocker triage (or skipping it), run a quick independent verification of the epic's completed stories. This is equivalent to dispatching `/verify --epic={N}` inline.
+
+Skip this step if:
+- The epic had zero completed stories (all failed or blocked)
+- The scope is `--next-story` (single-story execution doesn't trigger epic-level verification)
+
+Dispatch a verifier agent (sonnet) with the story file lists, acceptance criteria, and architecture decisions. The verifier checks: file existence, basic import health, AC spot-check, and architecture compliance. See the `/verify` skill (section 3) for the full agent prompt.
+
+**Display the verification summary** (see `/verify` section 4 for format) before the epic progress report.
+
+**Gate behavior**:
+- All stories PASS: proceed normally
+- CONCERNS only: show results, proceed (concerns are non-blocking)
+- Any FAIL + `--full-auto`: log failures to `verification_log` in `phase-state.json`, proceed
+- Any FAIL + no `--full-auto`: pause and ask:
+  ```
+  Verification found failures in Epic {N}. Fix before proceeding?
+
+  1. Proceed to Epic {N+1} anyway
+  2. Re-run failed stories: /sprint-exec --story=N.M
+  3. Deep audit: /audit-story --epic={N}
+  ```
+  Wait for user input.
+
+---
+
+### 4i. Epic Progress Report
 
 After all stories in an epic complete (or are skipped), output a prominent report:
 
@@ -450,6 +478,10 @@ After all stories in an epic complete (or are skipped), output a prominent repor
   Retry with: /sprint-exec --story=N.M
   {/if}
 
+  {if verification_ran}
+  Verification: {pass_count} passed, {concerns_count} concerns, {fail_count} failed
+  {/if}
+
   {if not last_epic}
   Next: Epic {N+1}: {next_epic_title}
   Background code review dispatched → .omc/sprint-plan/current/reviews/epic-{N}-review.md
@@ -457,7 +489,7 @@ After all stories in an epic complete (or are skipped), output a prominent repor
 ═══════════════════════════════════════════════════
 ```
 
-### 4i. Background Code Review (optional)
+### 4j. Background Code Review (optional)
 
 After reporting epic completion, dispatch the `sprint-review` skill in the background to review the epic's work while the next epic starts executing. This is non-blocking — execution continues immediately.
 
@@ -467,7 +499,7 @@ This is equivalent to running `/sprint-review --epic={N}` in the background. Use
 
 Review results accumulate in `current/reviews/` and are available for the user to check at any time. They do NOT block execution. The user can also run `/sprint-review` manually at any point.
 
-### 4j. Notification (optional)
+### 4k. Notification (optional)
 
 If OMC notification tools are configured (via `/configure-notifications`), send a notification on epic completion. This is non-blocking — skip gracefully if notifications are not set up.
 

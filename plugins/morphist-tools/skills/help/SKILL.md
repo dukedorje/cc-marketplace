@@ -242,7 +242,30 @@ Dispatched automatically by `/sprint-review` (per-epic) and `/retro` (full-sprin
 
 ---
 
-## 9. `/audit-story` — Verify Story Completion
+## 9. `/verify` — Quick Epic Completion Check
+
+**When**: After an epic executes, you want a fast independent check that files exist, ACs were addressed, and architecture was followed. Auto-runs between epics in `/sprint-exec`. For deep analysis, use `/audit-story` instead.
+
+```
+/verify                            # Verify most recently completed epic
+/verify --epic=2                   # Verify Epic 2
+/verify --story=2.3                # Verify a single story
+/verify --all                      # Verify all done stories in sprint
+```
+
+| Flag | Effect |
+|------|--------|
+| `--epic=N` | Verify all done stories in epic N |
+| `--story=N.M` | Verify a single story |
+| `--all` | Verify all done stories across all epics |
+
+Checks: file existence, import health, AC spot-check (YES/PARTIAL/NO), architecture compliance. Verdicts: PASS / CONCERNS / FAIL.
+
+Auto-runs after each epic in `/sprint-exec`. Failures pause execution (unless `--full-auto`).
+
+---
+
+## 10. `/audit-story` — Deep Story Completion Audit
 
 **When**: You want to verify that implemented stories actually meet their acceptance criteria. Especially useful after library changes, mid-sprint pivots, or before marking work as done.
 
@@ -268,7 +291,7 @@ Produces a gap analysis and actionable work plan. Updates story metadata so the 
 
 ---
 
-## 10. `/replan` — Mid-Sprint Course Correction
+## 11. `/replan` — Mid-Sprint Course Correction
 
 **When**: An architecture assumption, library choice, or dependency breaks mid-sprint. Surgically updates affected artifacts instead of restarting planning.
 
@@ -291,7 +314,7 @@ Updates architecture decisions, propagates changes to affected story specs, and 
 
 ---
 
-## 11. `/status` / `/update-status` — View/Update Statuses
+## 12. `/status` / `/update-status` — View/Update Statuses
 
 **When**: You want to see where things stand — what phase you're in, what artifacts exist, epic/story progress. Also use to fix statuses after manual work.
 
@@ -315,7 +338,7 @@ Updates architecture decisions, propagates changes to affected story specs, and 
 
 ---
 
-## 12. `/retro` — Sprint Retrospective
+## 13. `/retro` — Sprint Retrospective
 
 **When**: Sprint execution is complete (or use `--force` for a partial retro). Analyzes git history, Dev Agent Records, and ADR adherence. Produces cross-sprint intelligence for the next sprint's Phase 0.
 
@@ -330,7 +353,7 @@ Automatically dispatches `/reconcile --all` for full-sprint code style reconcili
 
 ---
 
-## 13. `/ultraresearch` — Multi-Agent Research Swarm
+## 14. `/ultraresearch` — Multi-Agent Research Swarm
 
 **When**: You have a question that needs broad exploration, multiple perspectives, or deep investigation. Standalone — not part of the sprint lifecycle.
 
