@@ -89,6 +89,7 @@ This loads the plugin from source. The local copy takes precedence over any inst
 | `reconcile` | Cross-story/epic code style reconciliation |
 | `epic-prep` | Pre-execution deep dive: enrich stories, revise decisions, decision graph |
 | `review-fix` | Validate and fix issues from reviews and reconciliation |
+| `status` | Quick sprint overview: phase, artifacts, statuses (alias for update-status --show) |
 | `update-status` | Manually view/update epic and story statuses |
 | `replan` | Scoped mid-sprint replanning for broken assumptions |
 | `audit-story` | Validate story completion, gap analysis, work plans (--tdd for test gates) |

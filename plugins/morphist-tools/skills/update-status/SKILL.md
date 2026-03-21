@@ -51,9 +51,73 @@ Please specify what to update: --epic=N or --story=N.M
 
 ## 2. Show Mode (`--show`)
 
-Gather status from all sources and display a unified view.
+Gather status from all sources and display a unified view. This mode works at ANY phase — even before epics exist.
 
-### 2a. Collect Story Statuses
+### 2a. Sprint Overview
+
+Always display this first, regardless of how far planning has progressed.
+
+Read `phase-state.json` and extract:
+- `sprint_number` (or sprint directory name)
+- `current_phase`
+- `execution_status` (if present)
+- `validation_status` (if present)
+- `retrospective_status` (if present)
+- `stale_phases` (if any)
+- `ral_passes` (if any)
+
+List artifacts in `current/` to determine what exists:
+
+```
+═══════════════════════════════════════════════════
+  SPRINT OVERVIEW
+═══════════════════════════════════════════════════
+
+  Sprint: {sprint_number}
+  Phase:  {current_phase}{if stale_phases} (stale: {list}){/if}
+  {if execution_status}Execution: {execution_status}{/if}
+  {if validation_status}Validation: {validation_status}{/if}
+  {if retrospective_status}Retrospective: {retrospective_status}{/if}
+
+  Artifacts:
+    {✓ or ✗} discovery.md
+    {✓ or ✗} requirements.md{if ✓} ({FR_count} FRs, {NFR_count} NFRs){/if}
+    {✓ or ✗} ux-design.md
+    {✓ or ✗} architecture-decisions.md{if ✓} ({decision_count} decisions){/if}
+    {✓ or ✗} epics.md{if ✓} ({epic_count} epics){/if}
+    {✓ or ✗} stories/{if ✓} ({story_count} stories){/if}
+    {✓ or ✗} readiness-report.md
+    {✓ or ✗} decision-graph.md
+    {✓ or ✗} retrospective.md
+    {✓ or ✗} replan-log.md
+    {✓ or ✗} reviews/{if ✓} ({review_count} reviews){/if}
+
+  {if ral_passes}
+  RAL passes: {list each phase:count}
+  {/if}
+
+  {suggest next action based on phase}
+  Resume: /sprint-plan --continue
+═══════════════════════════════════════════════════
+```
+
+**Next action suggestions** based on `current_phase`:
+- `discovery` → "Next: requirements phase. Resume with `/sprint-plan --continue`"
+- `requirements` → "Next: architecture phase. Resume with `/sprint-plan --continue`"
+- `architecture` → "Next: epic design phase. Resume with `/sprint-plan --continue`"
+- `epic-design` → "Next: story decomposition. Resume with `/sprint-plan --continue`"
+- `story-decomposition` → "Next: story enrichment. Resume with `/sprint-plan --continue`"
+- `story-enrichment` → "Next: validation. Resume with `/sprint-plan --continue`"
+- `validation` (pass) → "Ready for execution. Run `/sprint-exec` or `/epic-prep --epic=1` first"
+- `validation` (fail) → "Validation failed. Fix issues and re-run `/sprint-plan --restart-from=validation`"
+- If `execution_status: complete` → "Execution complete. Run `/retro` to generate retrospective"
+- If `execution_status: in-progress` → "Execution in progress. Resume with `/sprint-exec`"
+- If `execution_status: halted` → "Execution halted for replanning. See `/replan`"
+- If `retrospective_status: complete` → "Sprint complete. Start next sprint with `/sprint-plan`"
+
+If no epics exist yet (phase is before `epic-design`), display only the sprint overview and stop — skip sections 2b-2d.
+
+### 2b. Collect Story Statuses
 
 Use Glob to find all story files in `.omc/sprint-plan/current/stories/`.
 

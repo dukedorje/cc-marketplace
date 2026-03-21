@@ -285,12 +285,15 @@ Updates architecture decisions, propagates changes to affected story specs, and 
 
 ---
 
-## 11. `/update-status` — View/Update Statuses
+## 11. `/status` / `/update-status` — View/Update Statuses
 
-**When**: Automatic status tracking didn't work, or you've done manual work outside the workflow, or you just want to see where things stand.
+**When**: You want to see where things stand — what phase you're in, what artifacts exist, epic/story progress. Also use to fix statuses after manual work.
+
+`/status` is a quick alias for `/update-status --show`.
 
 ```
-/update-status                     # Show dashboard (default)
+/status                            # Sprint overview + dashboard
+/update-status                     # Same as /status (default is --show)
 /update-status --show              # Same as above
 /update-status --sync              # Recalculate epic statuses from stories
 /update-status --epic=2 --status=done
@@ -351,6 +354,7 @@ Automatically dispatches `/reconcile --all` for full-sprint code style reconcili
 | "Is this story actually done?" | `/audit-story --story=N.M` |
 | "The agents used different naming styles" | `/reconcile --epic=N` or `--all` |
 | "Review says there are issues" | `/review-fix` |
+| "Where am I? What phase is this?" | `/status` |
 | "I did manual work, update the status" | `/update-status --story=N.M --status=done` |
 | "Sprint is done, what did we learn?" | `/retro` |
 | "I need to research a technical question" | `/ultraresearch "question"` |
