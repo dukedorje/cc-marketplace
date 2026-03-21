@@ -9,114 +9,348 @@ Display the following usage guide directly to the user. Do NOT run any agents or
 
 ---
 
-## `/sprint-plan` — Multi-Phase Sprint Planning
+# Morphist Tools — Complete Skill Reference
 
-Transforms a product idea into implementation-ready user stories through 6 automated phases.
-
-### Usage
+## Lifecycle at a Glance
 
 ```
-/prd "your product idea"                    # Create a validated PRD
-/sprint-plan "your product idea here"       # Plan a sprint from an idea
-/sprint-plan path/to/prd.md                 # Plan from an existing PRD
-/sprint-plan --fast "quick prototype"       # Fast single-pass mode
-/sprint-plan --continue                     # Resume where you left off
-/sprint-plan --continue=architecture       # Resume from after architecture
-/sprint-plan --restart-from=architecture   # Redo architecture and downstream
-/sprint-exec                                # Execute stories with dev agents
-/sprint-exec --dry-run                      # Preview execution plan
-/retro                                      # Generate sprint retrospective
+  PLAN                PREPARE           EXECUTE           REVIEW            CLOSE
+  ────                ───────           ───────           ──────            ─────
+  /prd           ──>  /sprint-plan ──>  /epic-prep  ──>  /sprint-exec ──>  /sprint-review
+                                        (optional)        (per epic)        (auto or manual)
+                                                                    ──>  /reconcile
+                                                                    ──>  /review-fix
+                                                                    ──>  /retro
+
+  AT ANY TIME:  /ral  /audit-story  /replan  /update-status  /ultraresearch
 ```
 
-### Phases
+**Typical happy path**: `/prd` -> `/sprint-plan` -> `/sprint-exec` -> `/retro`
+
+Everything else is for refinement, course correction, or quality assurance.
+
+---
+
+## 1. `/prd` — Create a Product Requirements Document
+
+**When**: You have an idea but no formal spec yet. Always start here.
+
+```
+/prd "build a real-time dashboard for sensor data"
+/prd path/to/notes.md
+/prd --fast "quick prototype"
+```
+
+| Flag | Effect |
+|------|--------|
+| `--fast` | Skip interview, generate PRD in one pass |
+
+Conducts a structured interview, researches the codebase for context, and produces a scope-tiered PRD at `.omc/sprint-plan/prd-{slug}.md`.
+
+The PRD is the input to `/sprint-plan`.
+
+---
+
+## 2. `/sprint-plan` — Multi-Phase Sprint Planning
+
+**When**: You have a PRD (or idea) and want implementation-ready stories.
+
+```
+/sprint-plan "your idea"                       # From an idea (runs lightweight PRD internally)
+/sprint-plan path/to/prd.md                    # From an existing PRD
+/sprint-plan --fast "quick prototype"          # Single-pass, no consensus
+/sprint-plan --continue                        # Resume from last incomplete phase
+/sprint-plan --continue=architecture           # Resume from after architecture
+/sprint-plan --restart-from=architecture       # Redo architecture and all downstream
+```
+
+| Flag | Effect |
+|------|--------|
+| `--fast` | Single-pass mode, no RALPLAN-DR consensus loops |
+| `--thorough` | Explicit thorough mode (default) |
+| `--skip-ux` | Skip the optional UX Design phase |
+| `--continue` | Resume from next incomplete phase |
+| `--continue=<phase>` | Resume from after specified phase |
+| `--restart-from=<phase>` | Re-run a phase and all downstream |
+
+### Phases (in order)
 
 | # | Phase | What happens |
 |---|-------|-------------|
 | 0 | Discovery | Scans codebase, inventories existing code, finds planning artifacts |
-| 1 | Requirements | Expands idea into FRs, NFRs, constraints (parallel agents) |
-| 1.5 | UX Design (optional) | Generates component specs, user flows for frontend projects |
+| 1 | Requirements | Expands PRD into FRs, NFRs, constraints (parallel agents) |
+| 1.5 | UX Design (optional) | Component specs, user flows for frontend projects |
 | 2A | Architecture | Architecture decisions with RALPLAN-DR consensus |
 | 2B | Epic Design | Groups requirements into user-value-focused epics |
 | 3 | Stories | Breaks epics into dev-agent-sized stories with BDD criteria |
-| 4 | Enrichment | Adds technical details, testing requirements, file lists |
+| 4 | Enrichment | Adds technical details, testing requirements, file lists per story |
 | 5 | Validation | Checks FR coverage, dependencies, story quality |
-
-### Modes
-
-- **Thorough** (default) — RALPLAN-DR consensus, asks you about important decisions
-- **Fast** (`--fast`) — Single-pass, all decisions auto-made, ~3x faster
-
-### Flags
-
-| Flag | Effect |
-|------|--------|
-| `--fast` | Single-pass mode, no consensus loops |
-| `--thorough` | Explicit thorough mode (default) |
-| `--skip-ux` | Skip the optional UX Design phase (Phase 1.5) |
-| `--continue` | Resume from next incomplete phase (auto-detected from phase-state.json) |
-| `--continue=<phase>` | Resume from the phase after the specified one |
-| `--restart-from=<phase>` | Re-run a phase and all downstream: `discovery`, `requirements`, `ux-design`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation` |
 
 ### Output
 
-All artifacts land in `.omc/sprint-plan/sprint-NNN/`:
-- `discovery.md` — project context
-- `requirements.md` — functional and non-functional requirements
-- `ux-design.md` — component specs and user flows (optional, Phase 1.5)
-- `architecture-decisions.md` — ADR-lite architecture decisions
-- `epics.md` — epic structure with stories
-- `stories/*.md` — enriched story files ready for dev agents
-- `readiness-report.md` — final validation summary
-- `retrospective.md` — sprint retrospective (generated by `/retro`)
+All artifacts in `.omc/sprint-plan/sprint-NNN/` (symlinked as `current/`):
 
-### Refining
+| File | Contents |
+|------|----------|
+| `discovery.md` | Project context |
+| `requirements.md` | Functional and non-functional requirements |
+| `ux-design.md` | Component specs and user flows (optional) |
+| `architecture-decisions.md` | ADR-lite architecture decisions (D-001, D-002, ...) |
+| `epics.md` | Epic structure with story summaries |
+| `stories/E{N}-S{M}.md` | Enriched story files ready for dev agents |
+| `readiness-report.md` | Final validation summary |
 
-Use `/ral <phase>` to refine any phase output with a Planner→Architect→Critic consensus pass:
-```
-/ral architecture
-/ral requirements
-/ral epics
-```
+---
 
-### After Planning
+## 3. `/epic-prep` — Pre-Execution Deep Dive (Optional)
 
-Execute stories with dev agents: `/sprint-exec`
-
-Options: `--epic=N` (single epic), `--story=N.M` (single story), `--dry-run` (preview), `--concurrency=N` (limit parallel agents)
-
-After each epic completes, a background code review is dispatched to `.omc/sprint-plan/current/reviews/`.
-
-Review epic implementations manually at any time: `/sprint-review --epic=N` or `/sprint-review --all`.
-
-Reconcile code style across parallel agent work: `/reconcile --epic=N` or `/reconcile --all`. Auto-runs during reviews and retro. Propagate ADR changes to dependent stories: `/reconcile --decisions`.
-
-Validate and fix review findings: `/review-fix path/to/review.md` or just `/review-fix` to pick from recent reviews. Use `--dry-run` to preview.
-
-View and update epic/story statuses: `/update-status --show` (dashboard with decision graph), `/update-status --sync` (recalculate from stories), `/update-status --epic=N --status=done`, `/update-status --story=N.M --status=done`.
-
-### Pre-Execution Preparation
-
-Deep dive into an epic before execution: `/epic-prep --epic=N`. Interactive session for enriching stories, revising decisions, and drilling into specifics. Drill into a specific story: `/epic-prep --story=3.2`. View the decision graph: `/epic-prep --graph`. If ADRs were revised, suggests `/reconcile --decisions` to propagate.
-
-### Quality & Course Correction
-
-Audit story completion — verify ACs are met, find gaps, generate work plans: `/audit-story --story=N.M`, `/audit-story --epic=N`, `/audit-story --all`. Check against new context: `/audit-story --all --context="switched from Eden Treaty to ky"`. Use `--tdd` to generate failing tests as validation gates: `/audit-story --story=3.2 --tdd`.
-
-Mid-sprint replanning when an assumption breaks: `/replan --story=3.2 --reason="Eden Treaty doesn't support SSE"`, `/replan --decision=D-005`. Updates architecture decisions, propagates to affected story specs, resets stories for re-execution.
-
-### After Implementation
-
-Generate a sprint retrospective: `/retro`
-
-Use `--force` to generate a partial retrospective before all stories complete.
-
-### Refining PRDs and Retrospectives
+**When**: Before executing an epic, you want to enrich stories, revise decisions, or drill into specifics. Especially useful for complex or risky epics.
 
 ```
-/ral prd          # Refine the most recent PRD
-/ral retro        # Refine the retrospective
+/epic-prep --epic=2                # Deep dive into Epic 2
+/epic-prep --story=3.2             # Drill into a specific story
+/epic-prep --graph                 # View the decision dependency graph
 ```
 
-### More Info
+| Flag | Effect |
+|------|--------|
+| `--epic=N` | Target epic N for deep dive |
+| `--story=N.M` | Drill into a specific story |
+| `--graph` | Display the decision dependency graph |
 
-See the full README: `plugins/sprint-plan/README.md`
+Interactive session. If ADRs are revised during prep, suggests `/reconcile --decisions` to propagate changes to other epics.
+
+---
+
+## 4. `/sprint-exec` — Execute Stories
+
+**When**: Planning is complete and you're ready to implement. This is where code gets written.
+
+```
+/sprint-exec                       # Execute all epics sequentially, stories in parallel
+/sprint-exec --epic=2              # Execute only Epic 2
+/sprint-exec --story=2.3           # Execute only story 2.3 (infers epic)
+/sprint-exec --dry-run             # Preview execution plan without running agents
+/sprint-exec --concurrency=3       # Limit to 3 parallel agents per epic
+```
+
+| Flag | Effect |
+|------|--------|
+| `--epic=N` | Execute only epic N |
+| `--story=N.M` | Execute only story N.M (uses opus model for retries) |
+| `--dry-run` | Show plan without dispatching agents |
+| `--concurrency=N` | Max parallel executor agents per epic |
+
+**Behavior**:
+- Epics run sequentially (Epic 1 completes before Epic 2 starts)
+- Stories within an epic run in parallel
+- After each epic, a background `/sprint-review` is dispatched automatically
+- Resume-safe: re-running skips already-done stories
+- Failed stories can be retried individually with `--story=N.M` (upgrades to opus)
+
+---
+
+## 5. `/ral` — Refine Any Phase Artifact
+
+**When**: A phase is complete but you want higher quality. Runs a Planner -> Architect -> Critic adversarial consensus pass.
+
+```
+/ral architecture                  # Refine architecture decisions
+/ral epics --epic=2                # Refine only Epic 2's design
+/ral enrichment --story=3.1        # Refine a single story's enrichment
+/ral prd                           # Refine the PRD
+/ral retro                         # Refine the retrospective
+/ral stories --force               # Override the 2-pass limit
+```
+
+| Flag | Effect |
+|------|--------|
+| `--epic=N` | Scope to epic N (valid for: `epics`, `stories`, `enrichment`) |
+| `--story=N.M` | Scope to story N.M (valid for: `enrichment` only) |
+| `--force` | Bypass the 2-pass-per-scope limit |
+
+Valid phases: `requirements`, `architecture`, `epics`, `stories`, `enrichment`, `prd`, `retro`
+
+Each scope gets 2 refinement passes before diminishing-returns warning. If the artifact changes, downstream phases are marked stale.
+
+---
+
+## 6. `/sprint-review` — Review Completed Work
+
+**When**: An epic (or all epics) has been executed and you want a quality review against specs and architecture decisions. Runs automatically after each epic in `/sprint-exec`, but can also be called manually.
+
+```
+/sprint-review                     # Review the most recently completed epic
+/sprint-review --epic=2            # Review Epic 2
+/sprint-review --all               # Review all completed epics
+```
+
+| Flag | Effect |
+|------|--------|
+| `--epic=N` | Review specific epic |
+| `--all` | Review all completed epics |
+
+Output lands in `.omc/sprint-plan/current/reviews/`.
+
+---
+
+## 7. `/reconcile` — Fix Style Drift Across Agents
+
+**When**: Parallel agent execution produced inconsistent naming, patterns, or conventions across stories/epics. Also use after `/epic-prep` revises ADRs to propagate changes.
+
+```
+/reconcile --epic=2                # Reconcile within Epic 2
+/reconcile --all                   # Full-sprint cross-epic reconciliation
+/reconcile --decisions             # Propagate ADR changes to dependent story specs
+/reconcile --all --auto            # Auto-resolve everything (majority-wins)
+```
+
+| Flag | Effect |
+|------|--------|
+| `--epic=N` | Scope to epic N |
+| `--all` | Full-sprint reconciliation |
+| `--decisions` | Propagate ADR changes via decision graph (different mode) |
+| `--auto` | Auto-resolve without asking (majority-wins rule) |
+
+Dispatched automatically by `/sprint-review` (per-epic) and `/retro` (full-sprint).
+
+---
+
+## 8. `/review-fix` — Fix Issues from Reviews
+
+**When**: You have findings from `/sprint-review` or `/reconcile` and want to validate and fix them. Checks each finding against actual code, discards false positives, fixes real issues.
+
+```
+/review-fix                        # Pick from recent review files
+/review-fix path/to/review.md     # Fix findings in specific review
+/review-fix --dry-run              # Preview what would be fixed
+/review-fix --auto                 # Fix without asking per-finding
+/review-fix --tdd                  # Generate failing tests as validation
+```
+
+| Flag | Effect |
+|------|--------|
+| `--auto` | Fix all real issues without per-finding confirmation |
+| `--tdd` | Generate failing tests before fixing |
+| `--dry-run` | Show plan without making changes |
+
+---
+
+## 9. `/audit-story` — Verify Story Completion
+
+**When**: You want to verify that implemented stories actually meet their acceptance criteria. Especially useful after library changes, mid-sprint pivots, or before marking work as done.
+
+```
+/audit-story --story=3.2           # Audit a specific story
+/audit-story --epic=2              # Audit all stories in Epic 2
+/audit-story --all                 # Audit everything
+/audit-story --all --context="switched from Eden Treaty to ky"
+/audit-story --story=3.2 --tdd    # Generate failing tests as gates
+/audit-story --dry-run             # Preview audit plan
+```
+
+| Flag | Effect |
+|------|--------|
+| `--story=N.M` | Audit specific story |
+| `--epic=N` | Audit all stories in epic N |
+| `--all` | Audit all stories |
+| `--context="..."` | New facts to check against (library changes, etc.) |
+| `--tdd` | Generate failing tests as validation gates |
+| `--dry-run` | Preview without making changes |
+
+Produces a gap analysis and actionable work plan. Updates story metadata so the next implementor (or `/sprint-exec --story=N.M` retry) knows what's left.
+
+---
+
+## 10. `/replan` — Mid-Sprint Course Correction
+
+**When**: An architecture assumption, library choice, or dependency breaks mid-sprint. Surgically updates affected artifacts instead of restarting planning.
+
+```
+/replan --story=3.2 --reason="Eden Treaty doesn't support SSE"
+/replan --epic=2 --reason="need to switch from SQLite to Postgres"
+/replan --decision=D-005 --reason="chosen auth library is deprecated"
+/replan --decision=D-005 --dry-run
+```
+
+| Flag | Effect |
+|------|--------|
+| `--story=N.M` | Replan starting from a specific story |
+| `--epic=N` | Replan an entire epic |
+| `--decision=D-NNN` | Replan around a specific architecture decision |
+| `--reason="..."` | What broke and why (required context) |
+| `--dry-run` | Show impact without making changes |
+
+Updates architecture decisions, propagates changes to affected story specs, and marks impacted stories for re-execution.
+
+---
+
+## 11. `/update-status` — View/Update Statuses
+
+**When**: Automatic status tracking didn't work, or you've done manual work outside the workflow, or you just want to see where things stand.
+
+```
+/update-status                     # Show dashboard (default)
+/update-status --show              # Same as above
+/update-status --sync              # Recalculate epic statuses from stories
+/update-status --epic=2 --status=done
+/update-status --story=3.1 --status=done
+```
+
+| Flag | Effect |
+|------|--------|
+| `--show` | Display status dashboard with decision graph (default) |
+| `--sync` | Recalculate epic statuses from their story statuses |
+| `--epic=N --status=VALUE` | Set epic status |
+| `--story=N.M --status=VALUE` | Set story status |
+
+---
+
+## 12. `/retro` — Sprint Retrospective
+
+**When**: Sprint execution is complete (or use `--force` for a partial retro). Analyzes git history, Dev Agent Records, and ADR adherence. Produces cross-sprint intelligence for the next sprint's Phase 0.
+
+```
+/retro                             # Generate retrospective
+/retro --force                     # Generate even if stories are incomplete
+```
+
+Output: `.omc/sprint-plan/current/retrospective.md`
+
+Automatically dispatches `/reconcile --all` for full-sprint code style reconciliation.
+
+---
+
+## 13. `/ultraresearch` — Multi-Agent Research Swarm
+
+**When**: You have a question that needs broad exploration, multiple perspectives, or deep investigation. Standalone — not part of the sprint lifecycle.
+
+```
+/ultraresearch "what are the tradeoffs of SSR vs SSG for our use case?"
+/ultraresearch "compare auth solutions" --depth 3 --mode engineering
+```
+
+| Flag | Effect |
+|------|--------|
+| `--depth 1\|2\|3` | How deep to explore (default: 2) |
+| `--mode research\|engineering\|quick` | Research style |
+| `--max-branches N` | Limit parallel hypothesis branches |
+| `--output-dir PATH` | Custom output location |
+
+---
+
+## Quick Reference: When to Use What
+
+| Situation | Skill |
+|-----------|-------|
+| "I have an idea, where do I start?" | `/prd` then `/sprint-plan` |
+| "Planning is done, let's build" | `/sprint-exec` |
+| "This epic is complex, let me prepare" | `/epic-prep --epic=N` |
+| "The architecture phase feels weak" | `/ral architecture` |
+| "A library we chose doesn't work" | `/replan --decision=D-NNN --reason="..."` |
+| "Is this story actually done?" | `/audit-story --story=N.M` |
+| "The agents used different naming styles" | `/reconcile --epic=N` or `--all` |
+| "Review says there are issues" | `/review-fix` |
+| "I did manual work, update the status" | `/update-status --story=N.M --status=done` |
+| "Sprint is done, what did we learn?" | `/retro` |
+| "I need to research a technical question" | `/ultraresearch "question"` |
