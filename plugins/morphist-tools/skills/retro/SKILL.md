@@ -121,11 +121,17 @@ Tasks:
 
 ### Agent 3: Architecture Decision Review (critic, opus)
 
+Read `.omc/sprint-plan/current/decision-graph.md` if it exists and pass it to the agent. The graph shows which stories depend on which decisions, enabling precise impact analysis.
+
+Also read `.omc/sprint-plan/current/replan-log.md` if it exists — replan events are key data for the decision review.
+
 ```
 You are reviewing how well architecture decisions held up during sprint execution.
 
 Architecture decisions file: .omc/sprint-plan/current/architecture-decisions.md
 Story files: {list of all story file paths}
+{if decision_graph_exists}Decision graph: {decision_graph_content}{/if}
+{if replan_log_exists}Replan log: {replan_log_content}{/if}
 
 Tasks:
 1. Read the architecture decisions file — extract each decision with its ID (D-NNN), statement, and rationale
@@ -138,9 +144,18 @@ Tasks:
 4. Identify decisions that need revision based on execution experience:
    - What happened that contradicted or required modifying the decision?
    - Proposed revision (brief description)
-5. Produce:
+5. If decision graph is provided, analyze decision impact:
+   - Which decisions had the widest ripple (most dependent stories)?
+   - Did high-fan-out decisions hold up or cause problems?
+   - Were there stories affected by decisions not listed in the graph (missing graph edges)?
+6. If replan log is provided, analyze replan events:
+   - What triggered each replan? Could it have been caught earlier?
+   - How many stories were disrupted by each replan?
+7. Produce:
    - Decisions that held: count and list
    - Decisions that needed revision: count and list with details
+   - Decision impact ranking: decisions ordered by number of dependent stories (from graph)
+   - Replan analysis: what broke, why, and how to prevent it next sprint
    - New patterns that emerged during execution that should become architecture decisions in the next sprint
 ```
 

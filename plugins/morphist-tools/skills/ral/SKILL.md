@@ -255,6 +255,14 @@ Apply all APPLY and MODIFY changes to the artifact. Do not change sections that 
 - **`--story=N.M`**: Write the modified content back to `stories/E{N}-S{M}.md`.
 - **No scope**: Write the updated artifact back to the same path it was loaded from (unchanged behavior).
 
+**Decision graph maintenance**: If the phase is `architecture` and changes were applied (decisions added, removed, or renamed), update `current/decision-graph.md` if it exists:
+- If a decision was renamed: update the `## D-NNN: {title}` heading in the graph
+- If a decision was removed: remove its section from the graph
+- If a new decision was added: add a section with an empty story list (stories will be linked during the next `/epic-prep` or validation run)
+- If the graph file doesn't exist, skip this step.
+
+Similarly, if the phase is `enrichment` and the `decisions` frontmatter of a story changed (decision references added or removed), update the corresponding entries in `current/decision-graph.md` if it exists.
+
 ### If no consensus (critic found no APPLY or MODIFY changes):
 
 Do not modify the artifact. Report to the user:

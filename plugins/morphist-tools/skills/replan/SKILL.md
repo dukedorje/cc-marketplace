@@ -280,7 +280,22 @@ An epic that was `done` but now has stories reset to `ready-for-dev` becomes `pa
 
 ---
 
-## 6. Write Replan Log
+## 6. Update Decision Graph
+
+If `current/decision-graph.md` exists, update it to reflect the replanned decision:
+
+1. Read `current/decision-graph.md`
+2. Find the `## D-{NNN}` section for the revised decision
+3. Update the decision title if it changed
+4. Add any newly affected stories discovered during impact analysis (section 3a) that weren't already listed
+5. Remove any stories that no longer depend on this decision (if the revision changed the technology entirely)
+6. Write the updated graph back
+
+If the graph file does not exist, skip this step — the graph will be built on the next `/epic-prep` invocation.
+
+---
+
+## 7. Write Replan Log
 
 Write the replan record to `.omc/sprint-plan/current/replan-log.md` (append if file exists):
 
@@ -310,7 +325,7 @@ Write the replan record to `.omc/sprint-plan/current/replan-log.md` (append if f
 
 ---
 
-## 7. Report to User
+## 8. Report to User
 
 ```
 ═══════════════════════════════════════════════════
@@ -341,7 +356,7 @@ Write the replan record to `.omc/sprint-plan/current/replan-log.md` (append if f
 
 ---
 
-## 8. Integration with Blocker Triage
+## 9. Integration with Blocker Triage
 
 When the blocker triage elicitation (sprint-exec section 4g) results in option 1 ("swap approach") or option 2 ("update architecture"), the user can invoke `/replan` with the relevant context:
 

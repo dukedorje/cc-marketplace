@@ -43,6 +43,7 @@ Read:
 - `.omc/sprint-plan/current/architecture-decisions.md`
 - `.omc/sprint-plan/current/epics.md`
 - `.omc/sprint-plan/current/requirements.md`
+- `.omc/sprint-plan/current/decision-graph.md` (if exists — used to check if dependent ADRs were revised since story was implemented)
 - Any replan log: `.omc/sprint-plan/current/replan-log.md` (if exists)
 
 ### 2b. Collect Stories to Audit
@@ -116,6 +117,8 @@ For each AC in the story:
 For each architecture decision referenced by the story:
 - Is the implementation consistent with the decision?
 - If new context was provided, does the implementation conflict with it?
+- If the decision graph is available: check whether the ADR has a revision history entry dated AFTER the story's `completed_at` timestamp. If so, flag it — the story was implemented against an older version of the decision.
+- If a replan log exists: check whether any replan entries affect decisions this story depends on.
 
 ### Step 3: Check Code Quality Basics
 - Do the files listed in the Dev Agent Record actually exist?

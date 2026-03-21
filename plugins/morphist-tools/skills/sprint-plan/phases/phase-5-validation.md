@@ -385,6 +385,42 @@ Return a JSON object:
 
 ---
 
+## Decision Graph Generation
+
+After a passing verdict (before state updates), build the decision graph at `current/decision-graph.md`.
+
+This is the initial seed — `/epic-prep` and `/replan` will maintain it going forward.
+
+### Process
+
+1. Read all story files from `current/stories/`
+2. Read all decisions from `current/architecture-decisions.md`
+3. For each decision (D-NNN):
+   - Find all stories whose `decisions` frontmatter field references this ID
+   - Also scan story body `## Architecture Compliance` sections for the decision ID
+4. Write the graph:
+
+```markdown
+# Decision Graph
+
+Maps architecture decisions to dependent stories. Updated by /sprint-plan, /epic-prep, /replan.
+
+## D-001: {decision title}
+- 1.1: {story title}
+- 1.3: {story title}
+- 2.2: {story title}
+
+## D-003: {decision title}
+- 2.1: {story title}
+- 2.3: {story title}
+```
+
+Decisions with no story references are included with an empty list and a note: `(no stories reference this decision)`.
+
+Skip this step if the verdict is `fail` (the sprint needs fixes first).
+
+---
+
 ## State Updates
 
 On phase completion, update `current/phase-state.json`:
