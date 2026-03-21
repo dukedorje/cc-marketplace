@@ -119,7 +119,9 @@ All artifacts in `.omc/sprint-plan/sprint-NNN/` (symlinked as `current/`):
 | `--story=N.M` | Drill into a specific story |
 | `--graph` | Display the decision dependency graph |
 
-Interactive session. If ADRs are revised during prep, suggests `/reconcile --decisions` to propagate changes to other epics.
+Interactive session. Re-runnable — if new information surfaces (library changes, API discoveries, user feedback), run `/epic-prep --epic=N` again to add updated prep notes. Previous notes are preserved so executors see the full context.
+
+If ADRs are revised during prep, suggests `/reconcile --decisions` to propagate changes to other epics.
 
 ---
 

@@ -180,6 +180,8 @@ Return ONLY the enrichment content to be added under a `## Prep Notes` section.
 
 Insert the enrichment under a `## Prep Notes` section in the story file (before the Dev Agent Record if present).
 
+If a `## Prep Notes` section already exists (from a previous `/epic-prep` run), append the new enrichment under a `### Update: {ISO 8601 timestamp}` subsection rather than replacing existing notes. Previous prep context is valuable — the executor should see the full history of preparation.
+
 ### 4b. `edit ac` — Modify Acceptance Criteria
 
 Present the current ACs and let the user modify them interactively:
