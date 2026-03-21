@@ -92,6 +92,7 @@ This loads the plugin from source. The local copy takes precedence over any inst
 | `status` | Quick sprint overview: phase, artifacts, statuses (alias for update-status --show) |
 | `update-status` | Manually view/update epic and story statuses |
 | `replan` | Scoped mid-sprint replanning for broken assumptions |
+| `post-mortem` | Incident post-mortem — documents root cause and lessons in story docs for future agents |
 | `verify` | Quick independent epic completion check (auto-runs between epics) |
 | `audit-story` | Validate story completion, gap analysis, work plans (--tdd for test gates) |
 | `log` | Work log annotations with auto-detected sprint/epic/story context |
