@@ -2,7 +2,7 @@
 name: sprint-plan
 description: Multi-phase sprint planning workflow that transforms product ideas into implementation-ready user stories with architecture decisions, requirements expansion, and adversarial validation
 user-invocable: true
-argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--continue[=phase]] [--restart-from=phase]"
+argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--auto] [--step] [--continue[=phase]] [--restart-from=phase]"
 ---
 
 # Sprint Plan Orchestrator
@@ -21,14 +21,17 @@ Parse `$ARGUMENTS` for the following:
    - Empty (prompt the user: "What would you like to build?")
 
 2. **Flags**:
-   - `--fast`: Single-pass mode. No RALPLAN-DR consensus loops. Decision Steering starts in AUTONOMOUS mode. Refinement loops disabled.
+   - `--fast`: Single-pass mode. No RALPLAN-DR consensus loops. Decision Steering starts in AUTONOMOUS mode. Refinement loops disabled. Implies `--auto` (no inter-phase pauses).
    - `--thorough`: Full consensus mode. RALPLAN-DR active in Phases 2A/2B. Decision Steering starts in GUIDED mode. Refinement loops enabled.
+   - `--auto`: Run all phases without pausing between them. Pauses only for Decision Steering elicitations in GUIDED mode.
+   - `--step`: Pause after EVERY phase with a summary for user review. Maximum control.
    - `--skip-ux`: Skip Phase 1.5 (UX Design) even if frontend requirements are detected and no UX artifacts exist.
    - `--continue`: Resume the current sprint from the next incomplete phase. Reads `phase-state.json` to auto-detect where to pick up. Optionally accepts a phase name (`--continue=<phase>`) to resume from a specific phase without re-running it.
    - `--restart-from=<phase>`: Re-run a specific phase and everything downstream. Use this when you want to redo a completed phase. Valid values: `discovery`, `requirements`, `ux-design`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation`. Marks the specified phase and all downstream phases as stale.
 
 If both `--fast` and `--thorough` are provided, `--thorough` wins.
 If both `--continue` and `--restart-from` are provided, `--restart-from` wins (it's the more specific intent).
+`--fast` implies `--auto`. `--step` overrides `--auto` if both are provided.
 
 Store the parsed input for use throughout the workflow.
 
@@ -170,7 +173,83 @@ Execute phases sequentially. For each phase:
 4. Write the phase output to the correct file path.
 5. Update `current_phase` and metrics in `phase-state.json`.
 6. Run Decision Steering if the phase is in an active steering zone.
-7. Report progress to the user.
+7. **Inter-Phase Summary & Pause** (see section 3a below).
+
+### 3a. Inter-Phase Summary & Pause
+
+After each phase completes (steps 1-6), determine whether to pause based on the pause mode:
+
+**Pause modes**:
+
+| Mode | Pauses after |
+|------|-------------|
+| Default | **Decision points only**: Requirements (Phase 1), Architecture (Phase 2A), Validation (Phase 5) |
+| `--step` | Every phase |
+| `--auto` / `--fast` | Never (proceeds immediately; only Decision Steering elicitations in GUIDED mode can pause) |
+
+**Decision point phases** are where the user's input has the most impact — scope (requirements), technology choices (architecture), and go/no-go (validation). Other phases are downstream work that flows from those decisions.
+
+If the current phase is NOT a pause point for the active mode, skip the summary and proceed immediately.
+
+**Summary format**:
+
+```
+═══════════════════════════════════════════════════
+  Phase Complete: {phase_name}
+═══════════════════════════════════════════════════
+
+  Artifact: {artifact_path}
+
+  What was produced:
+    {2-4 bullet summary of the key outputs — e.g., "12 functional requirements",
+     "5 architecture decisions (2 CRITICAL)", "3 epics with 11 stories"}
+
+  Key decisions made:
+    {list significant decisions from this phase, if any}
+    {or "No significant decisions in this phase."}
+
+  Things to consider:
+    {1-3 items the user might want to review, steer, or discuss}
+    {e.g., "FR7 (real-time sync) has high complexity — worth reviewing scope"}
+    {e.g., "D-003 chose SSE over WebSocket — affects Stories 2.3, 3.1"}
+    {e.g., "Epic 2 has 8 stories — close to the split threshold"}
+
+  ─────────────────────────────────────────────────
+  Next: {next_phase_name}
+
+  Options:
+    continue       — proceed to {next_phase_name}
+    review         — open the artifact for detailed review
+    edit           — make changes before proceeding
+    /ral {phase}   — run a refinement pass on this phase
+    /sprint-plan --restart-from={phase} — redo this phase
+═══════════════════════════════════════════════════
+```
+
+Wait for user input before proceeding to the next phase.
+
+**Phase-specific summary content**:
+
+| Phase | "What was produced" highlights |
+|-------|-------------------------------|
+| Discovery | Tech stack, project type, existing artifacts found, new_repo flag |
+| Requirements | FR count, NFR count, constraint count, open questions count |
+| UX Design | Component count, screen count, interaction patterns |
+| Architecture | Decision count by significance, consensus iterations used |
+| Epic Design | Epic count, FR coverage %, dependency chain shape |
+| Story Decomposition | Story count per epic, total stories, health flags |
+| Story Enrichment | Stories enriched, avg file count per story, tech stack referenced |
+| Validation | Pass/fail status, critical findings, auto-fixed count |
+
+**"Things to consider"** — generate these by scanning the phase output for:
+- High-significance decisions (CRITICAL/HIGH)
+- Open questions or assumptions
+- Health flags (epic too large, orphan FRs, uncovered decisions)
+- Complexity hotspots
+- Anything that changed from previous phases (if resuming)
+
+If the user says "continue" (or equivalent), proceed to the next phase.
+If the user provides feedback or edits, incorporate them before proceeding.
 
 ---
 
@@ -196,7 +275,7 @@ Execute phases sequentially. For each phase:
 4. Write output to `.omc/sprint-plan/current/discovery.md`
 5. Update `phase-state.json`: set `current_phase` to `"discovery"` (completed).
 
-**No user interaction needed.** Proceed immediately to Phase 1.
+**Inter-Phase Summary** (section 3a): Discovery is not a decision point — default mode proceeds immediately to Phase 1. In `--step` mode, pauses here for review.
 
 ---
 

@@ -57,9 +57,11 @@ The PRD is the input to `/sprint-plan`.
 **When**: You have a PRD (or idea) and want implementation-ready stories.
 
 ```
-/sprint-plan "your idea"                       # From an idea (runs lightweight PRD internally)
+/sprint-plan "your idea"                       # Pauses at decision points for review
 /sprint-plan path/to/prd.md                    # From an existing PRD
-/sprint-plan --fast "quick prototype"          # Single-pass, no consensus
+/sprint-plan --step "careful planning"         # Pause after EVERY phase
+/sprint-plan --auto "build the dashboard"      # Run all phases without pausing
+/sprint-plan --fast "quick prototype"          # Single-pass, no consensus, no pauses
 /sprint-plan --continue                        # Resume from last incomplete phase
 /sprint-plan --continue=architecture           # Resume from after architecture
 /sprint-plan --restart-from=architecture       # Redo architecture and all downstream
@@ -67,8 +69,11 @@ The PRD is the input to `/sprint-plan`.
 
 | Flag | Effect |
 |------|--------|
-| `--fast` | Single-pass mode, no RALPLAN-DR consensus loops |
-| `--thorough` | Explicit thorough mode (default) |
+| *(default)* | Pause at decision points: after requirements, architecture, validation |
+| `--step` | Pause after every phase for maximum control |
+| `--auto` | Run all phases without pausing (stops only for Decision Steering) |
+| `--fast` | Single-pass mode, no consensus, no pauses |
+| `--thorough` | Explicit thorough mode (default quality level) |
 | `--skip-ux` | Skip the optional UX Design phase |
 | `--continue` | Resume from next incomplete phase |
 | `--continue=<phase>` | Resume from after specified phase |
@@ -130,19 +135,23 @@ If ADRs are revised during prep, suggests `/reconcile --decisions` to propagate 
 **When**: Planning is complete and you're ready to implement. This is where code gets written.
 
 ```
-/sprint-exec                       # Execute NEXT incomplete epic (default)
-/sprint-exec --full-auto           # Execute ALL remaining epics, no stopping
-/sprint-exec --next-story          # Execute just the next unfinished story
-/sprint-exec --epic=2              # Execute only Epic 2
-/sprint-exec --story=2.3           # Execute only story 2.3 (infers epic)
-/sprint-exec --dry-run             # Preview execution plan without running agents
+/sprint-exec                       # Execute NEXT incomplete epic (default — stops on everything)
+/sprint-exec --auto                # All remaining epics, stops on high+ severity
+/sprint-exec --auto --stop-at=critical  # All remaining, only stops on critical
+/sprint-exec --full-auto           # All remaining, never stops
+/sprint-exec --next-story          # Just the next unfinished story
+/sprint-exec --epic=2              # Only Epic 2
+/sprint-exec --story=2.3           # Only story 2.3 (infers epic)
+/sprint-exec --dry-run             # Preview execution plan
 /sprint-exec --concurrency=3       # Limit to 3 parallel agents per epic
 ```
 
 | Flag | Effect |
 |------|--------|
-| *(no flags)* | Execute the next incomplete epic only (incremental) |
-| `--full-auto` | Execute all remaining epics, auto-resolve failures and blockers |
+| *(no flags)* | Execute the next incomplete epic, stop on all decision points |
+| `--auto` | All remaining epics, stop on high+ severity decisions |
+| `--full-auto` | All remaining epics, auto-resolve everything |
+| `--stop-at=LEVEL` | Override stop threshold: `critical`, `high`, `medium`, `all` |
 | `--next-story` | Execute just the next unfinished story |
 | `--epic=N` | Execute only epic N |
 | `--story=N.M` | Execute only story N.M (uses opus model for retries) |
@@ -150,8 +159,10 @@ If ADRs are revised during prep, suggests `/reconcile --decisions` to propagate 
 | `--concurrency=N` | Max parallel executor agents per epic |
 
 **Behavior**:
-- **Default is incremental**: just the next epic, so you stay in control
-- `--full-auto` runs everything and auto-accepts partial failures / blockers
+- **Default is incremental**: just the next epic, stops on all decision points
+- `--auto` runs all epics, stops on high+ severity (arch blockers, epic failures)
+- `--full-auto` runs everything, auto-resolves all decisions
+- `--stop-at` overrides the threshold for any mode (e.g., `--auto --stop-at=critical`)
 - Epics run sequentially, stories within an epic run in parallel
 - After each epic: `/verify` runs inline (gate), then `/sprint-review` in background
 - Resume-safe: re-running skips already-done stories

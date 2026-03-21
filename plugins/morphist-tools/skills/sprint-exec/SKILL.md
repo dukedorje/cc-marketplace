@@ -54,13 +54,15 @@ Parse `$ARGUMENTS` for the following optional flags:
 | `--epic=N` | — | Execute only epic N |
 | `--story=N.M` | — | Execute only story N.M |
 | `--next-story` | off | Execute only the next unfinished story (first `ready-for-dev` story in the first incomplete epic) |
-| `--full-auto` | off | Execute ALL remaining epics without stopping for user confirmation. Auto-resolves failures (proceed to next epic) and blockers (accept partial). |
+| `--auto` | off | Execute ALL remaining epics sequentially. Stops on epic failure or architectural blockers (asks user). Does not stop on individual story failures within an epic. |
+| `--full-auto` | off | Execute ALL remaining epics without stopping for ANY user confirmation. Auto-resolves failures (proceed to next epic) and blockers (accept partial). |
+| `--stop-at=LEVEL` | varies | Decision severity threshold for pausing. Values: `critical`, `high`, `medium`, `all`. Default: `all` (default mode), `high` (`--auto`), `critical` (`--full-auto`). |
 | `--dry-run` | off | Show execution plan without dispatching agents |
 | `--concurrency=N` | unlimited | Max executor agents running simultaneously within an epic |
 
 **Default scope** (no scope flags): execute only the **next incomplete epic** — the first epic whose `epic_status` is not `"done"`. This keeps execution incremental and controllable.
 
-**Scope precedence**: `--story` > `--next-story` > `--epic` > default (next epic) > `--full-auto` (all remaining).
+**Scope precedence**: `--story` > `--next-story` > `--epic` > default (next epic) > `--auto` (all remaining, stop on failure) > `--full-auto` (all remaining, never stop).
 
 If `--story=N.M` is specified, `--epic` is inferred from the story number (N).
 
@@ -69,6 +71,39 @@ If `--next-story` is specified, determine the target by:
 2. Within that epic, find the first story with `status: ready-for-dev` (or `in-progress` if resuming)
 3. Execute only that single story
 4. If no unfinished stories remain, report: `All stories are complete. Nothing to execute.`
+
+### 1c-2. Decision Severity & Stop Threshold
+
+During execution, decision points arise at blocker triage, verification failures, and executor-reported concerns. Each decision point has a severity:
+
+| Severity | Examples |
+|----------|----------|
+| `critical` | Architectural blocker (`library_incompatible`, `architecture_mismatch`), all stories in epic failed, verification FAIL on a core story |
+| `high` | Multiple story failures in an epic, verification FAIL on non-core stories, executor flagged `blocker_type: dependency_missing` |
+| `medium` | Single story failure, verification CONCERNS, executor completion notes contain "workaround" or "TODO" |
+| `low` | Verification all-PASS with minor notes, individual story retry succeeded |
+
+**Stop behavior by mode**:
+
+| Mode | Default `--stop-at` | Stops for | Auto-resolves |
+|------|---------------------|-----------|---------------|
+| Default (next epic) | `all` | Everything — every decision point pauses | Nothing |
+| `--auto` | `high` | `critical` + `high` | `medium` + `low` (proceeds automatically) |
+| `--full-auto` | `critical` | Only `critical` if explicitly set via `--stop-at=critical` | Everything by default |
+
+`--stop-at` overrides the default for any mode. For example:
+- `--auto --stop-at=critical` — runs all epics, only stops on critical issues
+- `--full-auto --stop-at=high` — full auto but still stops on high-severity decisions
+- `--stop-at=medium` — default next-epic mode but auto-resolves low-severity items
+
+When a decision point is **below the stop threshold**, auto-resolve using the least-disruptive option:
+- Blocker triage: accept partial (option 3)
+- Verification failure: proceed with concerns logged
+- All-epic failure: proceed to next epic
+
+Log all auto-resolved decisions to `execution_log` with `"auto_resolved": true` and the severity level.
+
+---
 
 ### 1d. Check Existing Execution Status
 
@@ -172,7 +207,8 @@ Apply scope filtering based on parsed arguments (in precedence order):
 - If `--story=N.M`: only include that single story
 - If `--next-story`: only include the next unfinished story (see section 1c for resolution logic)
 - If `--epic=N`: only include stories in epic N
-- If `--full-auto`: include all stories across all remaining epics
+- If `--auto`: include all stories across all remaining epics (stops on epic failure/blockers)
+- If `--full-auto`: include all stories across all remaining epics (never stops)
 - Default (no scope flags): only include stories in the **next incomplete epic** — the first epic whose `epic_status` is not `"done"` in `phase-state.json`. If all epics are `"done"`, report completion and stop.
 
 Within the filtered set, apply status filtering:
@@ -316,7 +352,8 @@ If ALL stories in an epic fail:
   ```json
   { "type": "auto_proceed", "epic": N, "reason": "all stories failed, --full-auto active" }
   ```
-- Otherwise, halt execution and ask the user:
+- If `--auto`: halt and ask the user (same prompt as default below). `--auto` runs all epics but stops on epic-level failures.
+- Otherwise (default or `--epic`), halt execution and ask the user:
   ```
   All stories in Epic {N} failed. Possible causes: missing dependencies, environment issues, or ambiguous story spec.
 
@@ -354,8 +391,9 @@ If there **are** architectural blockers:
   ```json
   { "type": "blocker_auto_accepted", "story": "N.M", "blocker_type": "...", "decision": "accepted_partial_auto" }
   ```
-  Skip to 4h (Epic Progress Report).
-- Otherwise, this is a **blocking elicitation** — do NOT proceed to the next epic until the user responds.
+  Skip to 4h (Verification Gate).
+- If `--auto`: this is a **blocking elicitation** — `--auto` stops on blockers so the user can decide.
+- Otherwise (default), this is a **blocking elicitation** — do NOT proceed to the next epic until the user responds.
 
 #### Step 1: Impact Analysis
 
@@ -444,7 +482,8 @@ Dispatch a verifier agent (sonnet) with the story file lists, acceptance criteri
 - All stories PASS: proceed normally
 - CONCERNS only: show results, proceed (concerns are non-blocking)
 - Any FAIL + `--full-auto`: log failures to `verification_log` in `phase-state.json`, proceed
-- Any FAIL + no `--full-auto`: pause and ask:
+- Any FAIL + `--auto`: pause and ask (same as default — `--auto` stops on failures)
+- Any FAIL + default: pause and ask:
   ```
   Verification found failures in Epic {N}. Fix before proceeding?
 
