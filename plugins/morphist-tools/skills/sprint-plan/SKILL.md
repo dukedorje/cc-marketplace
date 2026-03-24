@@ -2,7 +2,7 @@
 name: sprint-plan
 description: Multi-phase sprint planning workflow that transforms product ideas into implementation-ready user stories with architecture decisions, requirements expansion, and adversarial validation
 user-invocable: true
-argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--auto] [--step] [--continue[=phase]] [--restart-from=phase]"
+argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--auto] [--step] [--sprint-size=SIZE] [--continue[=phase]] [--restart-from=phase]"
 ---
 
 # Sprint Plan Orchestrator
@@ -25,9 +25,10 @@ Parse `$ARGUMENTS` for the following:
    - `--thorough`: Full consensus mode. RALPLAN-DR active in Phases 2A/2B. Decision Steering starts in GUIDED mode. Refinement loops enabled.
    - `--auto`: Run all phases without pausing between them. Pauses only for Decision Steering elicitations in GUIDED mode.
    - `--step`: Pause after EVERY phase with a summary for user review. Maximum control.
+   - `--sprint-size=SIZE`: Sprint sizing hint. Values: `focused` (1-2 epics, 3-8 stories — learning sprint, maximum steering), `standard` (2-4 epics, 8-18 stories — balanced, default), `ambitious` (4-6 epics, 15-30 stories — high confidence, full delivery). Used by Phase 1B (Sprint Scoping) to propose a sprint boundary. For sprint N>1, velocity data may override this unless explicitly set.
    - `--skip-ux`: Skip Phase 1.5 (UX Design) even if frontend requirements are detected and no UX artifacts exist.
    - `--continue`: Resume the current sprint from the next incomplete phase. Reads `phase-state.json` to auto-detect where to pick up. Optionally accepts a phase name (`--continue=<phase>`) to resume from a specific phase without re-running it.
-   - `--restart-from=<phase>`: Re-run a specific phase and everything downstream. Use this when you want to redo a completed phase. Valid values: `discovery`, `requirements`, `ux-design`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation`. Marks the specified phase and all downstream phases as stale.
+   - `--restart-from=<phase>`: Re-run a specific phase and everything downstream. Use this when you want to redo a completed phase. Valid values: `discovery`, `requirements`, `sprint-scoping`, `ux-design`, `architecture`, `epic-design`, `story-decomposition`, `story-enrichment`, `validation`. Marks the specified phase and all downstream phases as stale.
 
 If both `--fast` and `--thorough` are provided, `--thorough` wins.
 If both `--continue` and `--restart-from` are provided, `--restart-from` wins (it's the more specific intent).
@@ -98,6 +99,8 @@ Write `.omc/sprint-plan/current/phase-state.json`:
   "steering_mode": "GUIDED|AUTONOMOUS",
   "significance_calibration": [],
   "decisions_log": [],
+  "sprint_size": null,
+  "sprint_scope": null,
   "refinement_loops": {
     "requirements_architecture": { "count": 0, "max": 3 }
   },
@@ -183,11 +186,11 @@ After each phase completes (steps 1-6), determine whether to pause based on the 
 
 | Mode | Pauses after |
 |------|-------------|
-| Default | **Decision points only**: Requirements (Phase 1), Architecture (Phase 2A), Validation (Phase 5) |
+| Default | **Decision points only**: Requirements (Phase 1), Sprint Scoping (Phase 1B), Architecture (Phase 2A), Validation (Phase 5) |
 | `--step` | Every phase |
 | `--auto` / `--fast` | Never (proceeds immediately; only Decision Steering elicitations in GUIDED mode can pause) |
 
-**Decision point phases** are where the user's input has the most impact — scope (requirements), technology choices (architecture), and go/no-go (validation). Other phases are downstream work that flows from those decisions.
+**Decision point phases** are where the user's input has the most impact — scope (requirements), sprint boundary (scoping), technology choices (architecture), and go/no-go (validation). Other phases are downstream work that flows from those decisions.
 
 If the current phase is NOT a pause point for the active mode, skip the summary and proceed immediately.
 
@@ -234,6 +237,7 @@ Wait for user input before proceeding to the next phase.
 |-------|-------------------------------|
 | Discovery | Tech stack, project type, existing artifacts found, new_repo flag |
 | Requirements | FR count, NFR count, constraint count, open questions count |
+| Sprint Scoping | FRs in scope vs deferred, estimated stories, sprint size, velocity basis |
 | UX Design | Component count, screen count, interaction patterns |
 | Architecture | Decision count by significance, consensus iterations used |
 | Epic Design | Epic count, FR coverage %, dependency chain shape |
@@ -322,6 +326,36 @@ If the user provides feedback or edits, incorporate them before proceeding.
 
 ---
 
+### Phase 1B: Sprint Scoping
+
+**Read phase instructions from `${CLAUDE_SKILL_DIR}/phases/phase-1b-sprint-scoping.md`**
+
+**Purpose**: Analyze the full requirement surface from Phase 1 and negotiate the sprint boundary with the user. Determines which FRs are in scope, which are stretch goals, and which are deferred — before architecture decisions are made.
+
+**Agent**: `analyst` (opus)
+
+**Steps**:
+1. Read `.omc/sprint-plan/current/requirements.md` (all FRs from Phase 1).
+2. Read `.omc/sprint-plan/current/discovery.md` (velocity data for sprint N>1).
+3. Read `.omc/backlog.md` and `.omc/backlog-promoted.md` if they exist.
+4. Determine sprint size: from `--sprint-size` flag, velocity calibration, or default (`standard`).
+5. Dispatch to `analyst` (opus): cluster FRs by cohesion/dependency, estimate story counts per cluster, propose sprint boundary (IN / STRETCH / DEFER).
+6. Present the scoping proposal to the user as an interactive negotiation (see phase instruction file for format).
+7. Incorporate user feedback (include/exclude clusters, change sprint size).
+8. Write to `.omc/sprint-plan/current/sprint-scope.md`.
+9. For deferred FR clusters: add items to `.omc/backlog.md` with `source: scoping:sprint-{N}` (graceful if backlog doesn't exist).
+10. Update `phase-state.json`: set `current_phase` to `"sprint-scoping"`, set `sprint_size` and `sprint_scope`.
+
+**In `--fast` or `--auto` mode**: Auto-accept the analyst's proposed boundary without user negotiation. Log the scoping decision with `[AUTO-DECIDED]` marker.
+
+**Decision Steering**: Active — sprint scope is a CRITICAL decision. In GUIDED mode, the negotiation interaction IS the steering. In AUTONOMOUS mode, auto-decided.
+
+**Inter-Phase Summary** (section 3a): Sprint Scoping is a decision point — default mode pauses here for user negotiation. The negotiation itself serves as the summary.
+
+**Downstream impact**: Phase 2A (Architecture) and Phase 2B (Epic Design) read `sprint-scope.md` to constrain their work to in-scope FRs only. Deferred FRs are noted but no architecture decisions are made for them.
+
+---
+
 ### Phase 1.5: UX Design (Optional)
 
 **Read phase instructions from `${CLAUDE_SKILL_DIR}/phases/phase-1.5-ux-design.md`**
@@ -355,8 +389,9 @@ If the user provides feedback or edits, incorporate them before proceeding.
 **Steps**:
 1. Read `.omc/sprint-plan/current/requirements.md` (context shedding).
 2. Read `.omc/sprint-plan/current/discovery.md` for project context.
-3. If `current/ux-design.md` exists, read it for frontend component and UX context. Include relevant UX constraints in the architect agent's context (component hierarchy, screen specs, interaction patterns that affect API shape or state management).
-4. If `decisions/active-decisions.md` exists, read it for cross-sprint decision context.
+3. Read `.omc/sprint-plan/current/sprint-scope.md` for sprint boundary. **Only make architecture decisions for in-scope FRs.** Note deferred FRs but do not design systems for them — those decisions would be stale by the time they're needed.
+4. If `current/ux-design.md` exists, read it for frontend component and UX context. Include relevant UX constraints in the architect agent's context (component hierarchy, screen specs, interaction patterns that affect API shape or state management).
+5. If `decisions/active-decisions.md` exists, read it for cross-sprint decision context.
 
 **In thorough mode** -- RALPLAN-DR consensus (max 3 iterations):
 1. Dispatch to `planner` (opus): Propose architecture decisions structured as ADR-lite records covering Data Architecture, Authentication/Security, API/Communication, Frontend Architecture (if applicable), Infrastructure/Deployment.
@@ -404,6 +439,7 @@ If the user provides feedback or edits, incorporate them before proceeding.
 **Steps**:
 1. Read `.omc/sprint-plan/current/requirements.md` (context shedding).
 2. Read `.omc/sprint-plan/current/architecture-decisions.md` (context shedding).
+3. Read `.omc/sprint-plan/current/sprint-scope.md` for sprint boundary. **Only design epics for in-scope FRs.** Stretch FRs may be included as a separate "stretch epic" if the user accepted them. Deferred FRs are excluded entirely.
 
 **In thorough mode** -- RALPLAN-DR consensus (max 3 iterations):
 1. Dispatch to `planner` (opus): Propose epic structure following these principles:
@@ -700,6 +736,7 @@ States: GUIDED | AUTONOMOUS
 |-------|----------------|
 | Phase 0 (Intake) | Dormant |
 | Phase 1 (Requirements) | Active -- scope, assumptions, constraints |
+| Phase 1B (Sprint Scoping) | Active -- sprint boundary is a CRITICAL decision |
 | Phase 1.5 (UX Design) | Active -- UX scope decisions |
 | Phase 2A (Architecture) | Maximally active |
 | Phase 2B (Epic Design) | Active but less frequent |
@@ -734,9 +771,10 @@ When a phase is re-run (via `--restart-from`, `--continue`, or refinement loop):
 3. The orchestrator automatically re-runs stale phases in order.
 
 **Phase chain for stale propagation** (in order):
-`discovery` → `requirements` → `ux-design` → `architecture` → `epic-design` → `story-decomposition` → `story-enrichment` → `validation`
+`discovery` → `requirements` → `sprint-scoping` → `ux-design` → `architecture` → `epic-design` → `story-decomposition` → `story-enrichment` → `validation`
 
-When `requirements` is marked stale, `ux-design` (if it ran) is also marked stale, and all downstream phases are marked stale.
+When `requirements` is marked stale, `sprint-scoping`, `ux-design` (if it ran), and all downstream phases are marked stale.
+When `sprint-scoping` is marked stale, `ux-design` (if it ran), `architecture`, and all downstream phases are marked stale.
 When `ux-design` is marked stale, `architecture` and all downstream phases are marked stale.
 
 ### 5c. OMC State (optional)

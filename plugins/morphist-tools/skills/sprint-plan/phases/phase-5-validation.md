@@ -99,6 +99,49 @@ Using story counts from `epics.md` and complexity data from `phase-state.json`:
 
 Epic health flags are **advisory only** — they appear in the readiness report but do not block a pass verdict unless the critic judges them severe.
 
+#### 2f. Sprint Size Compliance
+
+If `sprint-scope.md` exists, validate the actual sprint against the scoping decisions from Phase 1B.
+
+Read `sprint_size` from `phase-state.json` and count actual stories across all epics.
+
+**Sprint size guardrails**:
+
+| Sprint Size | Story Range | Epic Range | Over Threshold | Under Threshold |
+|-------------|-------------|------------|----------------|-----------------|
+| `focused` | 3-8 | 1-2 | >8 stories or >2 epics | <3 stories |
+| `standard` | 8-18 | 2-4 | >18 stories or >4 epics | <8 stories |
+| `ambitious` | 15-30 | 4-6 | >30 stories or >6 epics | <15 stories |
+
+**Checks**:
+1. Compare actual story count against the sprint size guardrail range
+2. Compare actual epic count against the sprint size epic range
+3. Compare actual stories against the `estimated_stories` from `sprint_scope` in `phase-state.json` — flag if >30% divergence (planning accuracy indicator)
+4. Verify all in-scope FRs from `sprint-scope.md` have story coverage (no scoped-in FRs left unplanned)
+5. Verify no deferred FRs have story coverage (scope creep — stories were created for FRs that were explicitly deferred)
+
+**Classification**:
+
+| Finding | Classification |
+|---------|---------------|
+| Over sprint size threshold | Warning — "Sprint has {N} stories but sprint size is {size} (max {max}). Consider deferring lower-priority epics or re-scoping with `/sprint-plan --restart-from=sprint-scoping`" |
+| Under sprint size threshold | Warning — "Sprint has only {N} stories for a {size} sprint (min {min}). Consider including stretch clusters or switching to `--sprint-size=focused`" |
+| >30% divergence from estimate | Warning — "Actual stories ({N}) diverge {pct}% from Phase 1B estimate ({est}). Planning accuracy is low — note for next sprint's velocity calibration" |
+| Deferred FR has story coverage | Warning — "FR{X} was deferred in sprint scoping but has story coverage. Either update sprint-scope.md or remove the story" |
+| In-scope FR missing coverage | Critical — "FR{X} was scoped IN but has no story coverage" |
+
+Sprint size compliance findings appear in the readiness report under a **Sprint Size** section:
+
+```
+Sprint Size: {size}
+  Stories: {actual} (target: {min}-{max}) — {OK|OVER|UNDER}
+  Epics: {actual} (target: {epic_min}-{epic_max}) — {OK|OVER|UNDER}
+  vs Estimate: {actual}/{estimated} ({divergence}%) — {OK|HIGH DIVERGENCE}
+  Scope integrity: {all in-scope FRs covered|N gaps}
+```
+
+If `sprint-scope.md` does not exist (Phase 1B was skipped in `--fast` mode), skip this section and note: "Sprint size compliance: skipped (no sprint scoping phase)."
+
 ---
 
 ### Step 3: Verifier Agent Checks (sonnet)

@@ -59,17 +59,19 @@ The PRD is the input to `/sprint-plan`.
 ```
 /sprint-plan "your idea"                       # Pauses at decision points for review
 /sprint-plan path/to/prd.md                    # From an existing PRD
+/sprint-plan --sprint-size=focused "careful"   # Small sprint, max steering (3-8 stories)
+/sprint-plan --sprint-size=ambitious "big"     # Full delivery mode (15-30 stories)
 /sprint-plan --step "careful planning"         # Pause after EVERY phase
 /sprint-plan --auto "build the dashboard"      # Run all phases without pausing
 /sprint-plan --fast "quick prototype"          # Single-pass, no consensus, no pauses
 /sprint-plan --continue                        # Resume from last incomplete phase
-/sprint-plan --continue=architecture           # Resume from after architecture
-/sprint-plan --restart-from=architecture       # Redo architecture and all downstream
+/sprint-plan --restart-from=sprint-scoping     # Re-scope the sprint boundary
 ```
 
 | Flag | Effect |
 |------|--------|
-| *(default)* | Pause at decision points: after requirements, architecture, validation |
+| *(default)* | Pause at decision points: after requirements, scoping, architecture, validation |
+| `--sprint-size=SIZE` | `focused` (3-8 stories), `standard` (8-18, default), `ambitious` (15-30) |
 | `--step` | Pause after every phase for maximum control |
 | `--auto` | Run all phases without pausing (stops only for Decision Steering) |
 | `--fast` | Single-pass mode, no consensus, no pauses |
@@ -85,12 +87,13 @@ The PRD is the input to `/sprint-plan`.
 |---|-------|-------------|
 | 0 | Discovery | Scans codebase, inventories existing code, finds planning artifacts |
 | 1 | Requirements | Expands PRD into FRs, NFRs, constraints (parallel agents) |
+| 1B | Sprint Scoping | Clusters FRs, proposes sprint boundary, negotiates scope with user |
 | 1.5 | UX Design (optional) | Component specs, user flows for frontend projects |
-| 2A | Architecture | Architecture decisions with RALPLAN-DR consensus |
-| 2B | Epic Design | Groups requirements into user-value-focused epics |
+| 2A | Architecture | Architecture decisions (only for in-scope FRs) |
+| 2B | Epic Design | Groups in-scope requirements into user-value-focused epics |
 | 3 | Stories | Breaks epics into dev-agent-sized stories with BDD criteria |
 | 4 | Enrichment | Adds technical details, testing requirements, file lists per story |
-| 5 | Validation | Checks FR coverage, dependencies, story quality |
+| 5 | Validation | Checks FR coverage, dependencies, story quality, sprint size compliance |
 
 ### Output
 
