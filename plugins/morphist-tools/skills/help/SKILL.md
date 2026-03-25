@@ -24,6 +24,7 @@ Display the following usage guide directly to the user. Do NOT run any agents or
                                                            └─> /review-fix
 
   AT ANY TIME:  /status  /refine  /audit  /replan  /log  /doc  /update-status  /ultraresearch
+                /done-validate  /blocker-triage
 ```
 
 **Typical happy path**: `/prd` -> `/sprint-plan` -> `/sprint-exec` -> `/retro`
@@ -157,21 +158,23 @@ Valid phases: `requirements`, `sprint-scoping`, `architecture`, `epics`, `storie
 
 **When**: Planning is complete and you're ready to implement. This is where code gets written.
 
+Sprint-exec is a **thin dispatcher** — it reads story specs, builds a task manifest, and delegates to OMC execution primitives. For maximum autonomy, run under ralph: `ralph /sprint-exec --auto`.
+
 ```
-/sprint-exec                       # Execute NEXT incomplete epic (default — stops on everything)
+/sprint-exec                       # Execute NEXT incomplete epic (stops on high+ severity)
 /sprint-exec --auto                # All remaining epics, stops on high+ severity
 /sprint-exec --auto --stop-at=critical  # All remaining, only stops on critical
 /sprint-exec --full-auto           # All remaining, never stops
 /sprint-exec --next-story          # Just the next unfinished story
 /sprint-exec --epic=2              # Only Epic 2
-/sprint-exec --story=2.3           # Only story 2.3 (infers epic)
+/sprint-exec --story=2.3           # Only story 2.3 (uses opus for retries)
 /sprint-exec --dry-run             # Preview execution plan
 /sprint-exec --concurrency=3       # Limit to 3 parallel agents per epic
 ```
 
 | Flag | Effect |
 |------|--------|
-| *(no flags)* | Execute the next incomplete epic, stop on all decision points |
+| *(no flags)* | Execute the next incomplete epic, stop on high+ severity |
 | `--auto` | All remaining epics, stop on high+ severity decisions |
 | `--full-auto` | All remaining epics, auto-resolve everything |
 | `--stop-at=LEVEL` | Override stop threshold: `critical`, `high`, `medium`, `all` |
@@ -182,13 +185,13 @@ Valid phases: `requirements`, `sprint-scoping`, `architecture`, `epics`, `storie
 | `--concurrency=N` | Max parallel executor agents per epic |
 
 **Behavior**:
-- **Default is incremental**: just the next epic, stops on all decision points
+- **Default is incremental**: just the next epic, stops on high+ severity
 - `--auto` runs all epics, stops on high+ severity (arch blockers, epic failures)
 - `--full-auto` runs everything, auto-resolves all decisions
-- `--stop-at` overrides the threshold for any mode (e.g., `--auto --stop-at=critical`)
+- `--stop-at` overrides the threshold for any mode (e.g., `--stop-at=all` for maximum control)
 - Epics run sequentially, stories within an epic run in parallel
-- After each epic: `/verify` runs inline (gate), then `/sprint-review` in background
-- Resume-safe: re-running skips already-done stories
+- After each epic: `/done-validate` → `/blocker-triage` (if needed) → `/verify` (gate) → `/sprint-review` (background)
+- Context checkpoint after each epic for seamless resume
 - Failed stories can be retried individually with `--story=N.M` (upgrades to opus)
 
 ---
@@ -274,6 +277,34 @@ Dispatched automatically by `/sprint-review` (per-epic) and `/retro` (full-sprin
 Checks: file existence, import health, AC spot-check (YES/PARTIAL/NO), architecture compliance. Verdicts: PASS / CONCERNS / FAIL.
 
 Auto-runs after each epic in `/sprint-exec`. Failures pause execution (unless `--full-auto`).
+
+---
+
+## 8b. `/done-validate` — Post-Execution Completion Validation
+
+**When**: After executor agents return, validates they actually produced work. Auto-runs within `/sprint-exec`, but also available standalone.
+
+```
+/done-validate --epic=2            # Validate all stories in Epic 2
+/done-validate --story=2.3         # Validate a single story
+/done-validate --story=2.3 --update  # Validate and write results to frontmatter
+```
+
+Checks: Dev Agent Record filled, files exist on disk, AC checkboxes addressed, blocker classification. Determines outcome: `done` | `failed` | `blocked`.
+
+---
+
+## 8c. `/blocker-triage` — Architectural Blocker Resolution
+
+**When**: A story reports an architectural blocker (`library_incompatible`, `architecture_mismatch`, `dependency_missing`). Auto-runs within `/sprint-exec`, but also available standalone.
+
+```
+/blocker-triage --epic=2           # Triage blockers in Epic 2
+/blocker-triage --story=2.3        # Triage a specific story
+/blocker-triage --epic=2 --auto-accept  # Accept partial for all
+```
+
+Analyzes downstream impact on upcoming epics, presents 4 options: swap approach, update architecture decision, accept partial, halt sprint.
 
 ---
 
@@ -442,6 +473,8 @@ Docs are standalone — readable without sprint artifacts. Cross-references logg
 | "The architecture phase feels weak" | `/refine architecture` |
 | "A library we chose doesn't work" | `/replan --decision=D-NNN --reason="..."` |
 | "Quick check — did this epic actually get built?" | `/verify --epic=N` |
+| "Did the executor actually produce files?" | `/done-validate --epic=N` |
+| "A story hit an architecture blocker" | `/blocker-triage --story=N.M` |
 | "Something's wrong with a story, what's the real state?" | `/audit --story=N.M` |
 | "A library changed, what broke?" | `/audit --all --context="library X changed"` |
 | "The agents used different naming styles" | `/reconcile --epic=N` or `--all` |
@@ -488,6 +521,8 @@ When a story fails, gets blocked, or the codebase shifts, here's the natural seq
 
 | Tool | Question | Speed |
 |------|----------|-------|
+| `/done-validate` | "Did the agent actually produce files?" (completion check) | ~10s |
 | `/verify` | "Is it done?" (pass/fail gate) | ~30s |
+| `/blocker-triage` | "An arch decision broke — what's the impact?" (triage) | ~1min |
 | `/audit` | "What's broken and how do I fix it?" (investigation) | ~3min |
 | `/post-mortem` | "Why did it fail? What should future agents know?" (lessons) | ~2min |

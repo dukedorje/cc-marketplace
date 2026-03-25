@@ -195,11 +195,12 @@ For planning skills (sprint-plan, prd, refine) that also need continuation:
 - [x] Update sprint-exec to call extracted skills instead of inline logic
 - [x] Sprint-exec reduced from 644 → 481 lines (25% reduction)
 
-### Phase 3 (After — Thin Dispatcher Rewrite)
-- [ ] Rewrite sprint-exec as thin dispatcher (~150 lines)
-- [ ] Add OMC team dispatch for epic-level execution
-- [ ] Add OMC team+ralph dispatch for full-sprint execution
-- [ ] Remove monolithic orchestration loop
+### Phase 3 (Done — Thin Dispatcher Rewrite)
+- [x] Rewrite sprint-exec as thin dispatcher (272 lines, down from 644)
+- [x] Single story → direct executor dispatch
+- [x] Epic → parallel executor dispatch with post-epic hooks
+- [x] All-epics → sequential epic loop, benefits from OMC ralph persistence
+- [x] Removed monolithic orchestration loop, inline blocker triage, inline progress reports
 - [ ] Test with a real sprint
 
 ### Phase 4 (Future — Planning Autonomy)
