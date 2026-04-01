@@ -255,9 +255,15 @@ If the epic had completed stories and scope is not `--next-story`:
 
 If epic had completed stories: dispatch `/sprint-review --epic={N}` with `run_in_background=True`.
 
-### 5g. Progress Report
+### 5g. Inter-Epic Review Brief
 
-Generate report via the `exec-report` skill (internal).
+Generate the review brief via the `exec-report` skill (internal). This produces the epic narrative summary, per-story results, cross-story reconciliation scan, manual test suggestions, and contextual next steps.
+
+The review brief ends with a **pause for user input** (unless `--full-auto`). The user can continue, fix a story, run reconcile, audit, refine the next epic, annotate findings, or halt.
+
+- `--auto`: Pause only if there are failed stories or reconciliation warnings. Otherwise auto-continue.
+- `--full-auto`: Never pause (all output is informational only, auto-continues immediately).
+- Default (single epic): Always pause.
 
 ### 5h. Notification
 
