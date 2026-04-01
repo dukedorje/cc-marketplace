@@ -2,7 +2,7 @@
 name: log
 description: Append timestamped entries to a work log with auto-detected sprint/epic/story context. Creates a running record of decisions, discoveries, and notes.
 user-invocable: true
-argument-hint: "\"<message>\" [--story=N.M] [--epic=N] [--decision=D-NNN] [--tag=TAG]"
+argument-hint: "\"<message>\" [--story=N.M] [--epic=N] [--decision=D-NNN] [--tag=TAG] [--sprint=ID]"
 ---
 
 # log: Work Log Annotation System
@@ -40,7 +40,15 @@ Examples:
 
 ## 2. Auto-Detect Sprint Context
 
-Check for an active sprint by reading `.omc/sprint-plan/current/phase-state.json`.
+### Sprint Resolution
+
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+4. Otherwise: no sprint context (proceed to section 2b).
+
+Check for an active sprint by reading `SPRINT_DIR/phase-state.json` (if `SPRINT_DIR` was resolved).
 
 ### 2a. If Sprint Exists
 
@@ -50,14 +58,14 @@ Extract:
 - `execution_status` (if present)
 
 If `--story` or `--epic` was provided, validate they exist:
-- Read `current/epics.md` to confirm the epic exists
+- Read `SPRINT_DIR/epics.md` to confirm the epic exists
 - If `--story=N.M`, find the story file and extract its title
 
 If neither `--story` nor `--epic` was provided, attempt to infer context:
 - If `execution_status` is `"in-progress"`, check `execution_log` for the most recent story being worked on
 - If found, auto-tag the entry with that epic/story (note it as "inferred" in the entry)
 
-If `--decision` was provided, read the decision title from `current/architecture-decisions.md`.
+If `--decision` was provided, read the decision title from `SPRINT_DIR/architecture-decisions.md`.
 
 ### 2b. If No Sprint
 
@@ -69,7 +77,7 @@ No sprint context is added. The entry is project-level only. This is fine — th
 
 The work log file depends on context:
 
-1. **Sprint-scoped** (sprint exists): `.omc/sprint-plan/current/work-log.md`
+1. **Sprint-scoped** (sprint exists): `SPRINT_DIR/work-log.md`
 2. **Project-scoped** (no sprint): `.omc/work-log.md`
 
 If the log file doesn't exist, create it with a header:
@@ -157,8 +165,8 @@ If the doc file **doesn't exist**, create it:
 ## References
 
 - Work log entry: {timestamp}
-{if story}- Story spec: `.omc/sprint-plan/current/stories/{story_file}`{/if}
-{if decision}- Architecture decision: `.omc/sprint-plan/current/architecture-decisions.md#{D-NNN}`{/if}
+{if story}- Story spec: `SPRINT_DIR/stories/{story_file}`{/if}
+{if decision}- Architecture decision: `SPRINT_DIR/architecture-decisions.md#{D-NNN}`{/if}
 ```
 
 If the doc file **already exists**, append a new section with the update:
@@ -213,13 +221,13 @@ Logged: {first 80 chars of message}...
 ## 7. Viewing the Log
 
 The work log is a plain markdown file. Users can:
-- Read it directly: `cat .omc/sprint-plan/current/work-log.md`
+- Read it directly: `cat SPRINT_DIR/work-log.md`
 - Search it: grep for tags, story refs, dates
 - It's consumed by `/retro` for retrospective generation
 
 ### Integration with `/retro`
 
-The retro skill should read `current/work-log.md` if it exists and pass it to the story execution analysis agent. Work log entries provide context that Dev Agent Records don't capture — human decisions, discoveries, course corrections.
+The retro skill should read `SPRINT_DIR/work-log.md` if it exists and pass it to the story execution analysis agent. Work log entries provide context that Dev Agent Records don't capture — human decisions, discoveries, course corrections.
 
 ---
 

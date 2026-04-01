@@ -263,8 +263,8 @@ Your role: PLANNER — propose architecture decisions.
 ## Inputs
 
 Read the following files:
-- .omc/sprint-plan/current/requirements.md (Phase 1 output)
-- .omc/sprint-plan/current/discovery.md (Phase 0 output)
+- SPRINT_DIR/requirements.md (Phase 1 output)
+- SPRINT_DIR/discovery.md (Phase 0 output)
 - .omc/sprint-plan/decisions/active-decisions.md (if it exists — prior sprint decisions)
 
 ## Task
@@ -305,7 +305,7 @@ Divergence requires a compelling justification. For new repos, skip this section
 
 ## Output
 
-Write your proposed decisions to .omc/sprint-plan/current/architecture-decisions.md using the ADR-lite format.
+Write your proposed decisions to SPRINT_DIR/architecture-decisions.md using the ADR-lite format.
 Also append entries to .omc/sprint-plan/decisions/decision-log.md and update .omc/sprint-plan/decisions/active-decisions.md.
 
 After writing, check: do any decisions invalidate, constrain, or create new requirements not in requirements.md?
@@ -328,9 +328,9 @@ Your role: ARCHITECT — review proposed architecture decisions.
 ## Inputs
 
 Read the following files:
-- .omc/sprint-plan/current/architecture-decisions.md (planner's proposed decisions)
-- .omc/sprint-plan/current/requirements.md (Phase 1 output)
-- .omc/sprint-plan/current/discovery.md (Phase 0 output)
+- SPRINT_DIR/architecture-decisions.md (planner's proposed decisions)
+- SPRINT_DIR/requirements.md (Phase 1 output)
+- SPRINT_DIR/discovery.md (Phase 0 output)
 
 ## Task
 
@@ -350,7 +350,7 @@ Challenge weak rationales with steelman antithesis: argue the strongest possible
 
 ## Output
 
-Write your review to .omc/sprint-plan/current/architecture-decisions.md, updating each decision with your assessment.
+Write your review to SPRINT_DIR/architecture-decisions.md, updating each decision with your assessment.
 Flag any requirements conflicts not caught by the planner.
 
 Mark each decision: [ARCHITECT: APPROVED], [ARCHITECT: MODIFIED], or [ARCHITECT: REJECTED with alternative].
@@ -372,8 +372,8 @@ Your role: CRITIC — validate the quality and consistency of architecture decis
 ## Inputs
 
 Read the following files:
-- .omc/sprint-plan/current/architecture-decisions.md (with architect's review marks)
-- .omc/sprint-plan/current/requirements.md (Phase 1 output)
+- SPRINT_DIR/architecture-decisions.md (with architect's review marks)
+- SPRINT_DIR/requirements.md (Phase 1 output)
 
 ## Task
 
@@ -393,7 +393,7 @@ Additionally flag:
 
 ## Output
 
-Write your validation results to .omc/sprint-plan/current/architecture-decisions.md.
+Write your validation results to SPRINT_DIR/architecture-decisions.md.
 
 For each decision, add: [CRITIC: VALIDATED] or [CRITIC: ISSUE — {description}].
 

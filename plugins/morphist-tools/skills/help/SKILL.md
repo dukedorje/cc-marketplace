@@ -98,7 +98,7 @@ The PRD is the input to `/sprint-plan`.
 
 ### Output
 
-All artifacts in `.omc/sprint-plan/sprint-NNN/` (symlinked as `current/`):
+All artifacts in `SPRINT_DIR/` (e.g. `.omc/sprint-plan/sprint-NNN/`, symlinked as `current/`):
 
 | File | Contents |
 |------|----------|
@@ -242,7 +242,7 @@ Sprint-exec is a **thin dispatcher** — it reads story specs, builds a task man
 | `--epic=N` | Review specific epic |
 | `--all` | Review all completed epics |
 
-Output lands in `.omc/sprint-plan/current/reviews/`.
+Output lands in `SPRINT_DIR/reviews/`.
 
 ---
 
@@ -395,9 +395,11 @@ Updates architecture decisions, propagates changes to affected story specs, and 
 `/status` is a quick alias for `/update-status --show`.
 
 ```
-/status                            # Sprint overview + dashboard
+/status                            # Sprint overview + dashboard (current sprint)
+/status --sprint=2                 # Status for a specific sprint
 /update-status                     # Same as /status (default is --show)
 /update-status --show              # Same as above
+/update-status --show --sprint=2   # Show a specific sprint
 /update-status --sync              # Recalculate epic statuses from stories
 /update-status --epic=2 --status=done
 /update-status --story=3.1 --status=done
@@ -406,6 +408,7 @@ Updates architecture decisions, propagates changes to affected story specs, and 
 | Flag | Effect |
 |------|--------|
 | `--show` | Display status dashboard with decision graph (default) |
+| `--sprint=ID` | Target a specific sprint instead of current |
 | `--sync` | Recalculate epic statuses from their story statuses |
 | `--epic=N --status=VALUE` | Set epic status |
 | `--story=N.M --status=VALUE` | Set story status |
@@ -421,7 +424,7 @@ Updates architecture decisions, propagates changes to affected story specs, and 
 /retro --force                     # Generate even if stories are incomplete
 ```
 
-Output: `.omc/sprint-plan/current/retrospective.md`
+Output: `SPRINT_DIR/retrospective.md`
 
 Automatically dispatches `/reconcile --all` for full-sprint code style reconciliation.
 
@@ -447,7 +450,7 @@ Automatically dispatches `/reconcile --all` for full-sprint code style reconcili
 | `--doc` | Also create permanent doc in `docs/` |
 | `--doc=PATH` | Create doc at specific `docs/PATH.md` |
 
-Log file: `.omc/sprint-plan/current/work-log.md` (sprint) or `.omc/work-log.md` (project).
+Log file: `SPRINT_DIR/work-log.md` (sprint) or `.omc/work-log.md` (project).
 
 Cross-references entries in story files. Consumed by `/retro` for retrospective context.
 

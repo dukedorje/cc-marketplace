@@ -2,7 +2,7 @@
 name: reconcile
 description: Cross-story and cross-epic code style reconciliation. Detects inconsistencies in naming, patterns, and conventions across parallel agent work. Raises elicitations for contentious choices.
 user-invocable: true
-argument-hint: "[--epic=N] [--all] [--auto]"
+argument-hint: "[--epic=N] [--all] [--auto] [--sprint=ID]"
 ---
 
 # Reconcile: Code Style Reconciliation
@@ -32,19 +32,29 @@ If no flag is provided, reconcile the most recently completed epic (same logic a
 
 ## 2. Load Context
 
-### 2a. Sprint Artifacts
+### 2a. Sprint Resolution
 
-Read from `.omc/sprint-plan/current/`:
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `SPRINT_DIR/`
+4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
+
+Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+
+### 2b. Sprint Artifacts
+
+Read from `SPRINT_DIR/`:
 - `architecture-decisions.md` — decisions that may prescribe conventions
 - `discovery.md` — existing codebase patterns (if any) that set the baseline
 
-### 2b. Determine Scope
+### 2c. Determine Scope
 
-Based on flags, collect the relevant story files from `current/stories/`. Only include stories with `status: done`.
+Based on flags, collect the relevant story files from `SPRINT_DIR/stories/`. Only include stories with `status: done`.
 
 For each story, read the Dev Agent Record to get the list of files created/modified.
 
-### 2c. Build File Inventory
+### 2d. Build File Inventory
 
 Collect all implementation files (not story specs) touched by stories in scope. Group by:
 - Language/file type (`.ts`, `.py`, `.rs`, etc.)
@@ -66,8 +76,8 @@ You are performing code style reconciliation across work produced by parallel de
 
 ## Context
 
-Architecture decisions: .omc/sprint-plan/current/architecture-decisions.md
-Existing codebase patterns: .omc/sprint-plan/current/discovery.md
+Architecture decisions: SPRINT_DIR/architecture-decisions.md
+Existing codebase patterns: SPRINT_DIR/discovery.md
 
 ## Files to Analyze
 
@@ -234,7 +244,7 @@ or make any other changes. This is a cosmetic reconciliation pass.
 
 ## 5. Write Report
 
-Write the reconciliation report to `.omc/sprint-plan/current/reviews/reconciliation-{scope}.md` where `{scope}` is `epic-{N}` or `full-sprint`.
+Write the reconciliation report to `SPRINT_DIR/reviews/reconciliation-{scope}.md` where `{scope}` is `epic-{N}` or `full-sprint`.
 
 ```markdown
 # Code Reconciliation: {scope}
@@ -278,7 +288,7 @@ Write the reconciliation report to `.omc/sprint-plan/current/reviews/reconciliat
     User-resolved:     {count}
     Accepted as-is:    {count}
 
-  Report: .omc/sprint-plan/current/reviews/reconciliation-{scope}.md
+  Report: SPRINT_DIR/reviews/reconciliation-{scope}.md
 ═══════════════════════════════════════════════════
 ```
 
@@ -290,7 +300,7 @@ When `--decisions` is specified, reconcile operates in a different mode: instead
 
 ### 7a. Read Decision Graph
 
-Read `.omc/sprint-plan/current/decision-graph.md` to identify which stories depend on which ADRs.
+Read `SPRINT_DIR/decision-graph.md` to identify which stories depend on which ADRs.
 
 If the graph doesn't exist, halt:
 ```

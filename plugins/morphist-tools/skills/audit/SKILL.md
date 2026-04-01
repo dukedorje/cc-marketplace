@@ -2,7 +2,7 @@
 name: audit
 description: Deep investigation of story completion — checks implementation against ACs and current codebase, identifies what's broken, produces an actionable fix plan. Use when something went wrong or code shifted.
 user-invocable: true
-argument-hint: "[--story=N.M] [--epic=N] [--all] [--context=\"...\"] [--tdd] [--dry-run]"
+argument-hint: "[--story=N.M] [--epic=N] [--all] [--context=\"...\"] [--tdd] [--dry-run] [--sprint=ID]"
 ---
 
 # audit: Story Investigation & Fix Planning
@@ -38,17 +38,26 @@ No scope specified. Audit all done stories in the current sprint? (y/n)
 
 ## 2. Gather Context
 
-### 2a. Read Sprint Artifacts
+### 2a. Sprint Resolution
+
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
+
+Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+
+### 2b. Read Sprint Artifacts
 
 Read:
-- `.omc/sprint-plan/current/phase-state.json`
-- `.omc/sprint-plan/current/architecture-decisions.md`
-- `.omc/sprint-plan/current/epics.md`
-- `.omc/sprint-plan/current/requirements.md`
-- `.omc/sprint-plan/current/decision-graph.md` (if exists — used to check if dependent ADRs were revised since story was implemented)
-- Any replan log: `.omc/sprint-plan/current/replan-log.md` (if exists)
+- `SPRINT_DIR/architecture-decisions.md`
+- `SPRINT_DIR/epics.md`
+- `SPRINT_DIR/requirements.md`
+- `SPRINT_DIR/decision-graph.md` (if exists — used to check if dependent ADRs were revised since story was implemented)
+- Any replan log: `SPRINT_DIR/replan-log.md` (if exists)
 
-### 2b. Collect Stories to Audit
+### 2c. Collect Stories to Audit
 
 Based on scope flags, collect the set of story files to audit.
 
@@ -56,7 +65,7 @@ For each story, read:
 - Full story file (spec + Dev Agent Record)
 - Story frontmatter (status, blocker info, replan notes)
 
-### 2c. Collect New Context
+### 2d. Collect New Context
 
 If `--context` or `--context-file` is provided, parse and prepare the additional context. This might be:
 - "We switched from Eden Treaty to ky for API calls"
@@ -412,7 +421,7 @@ For stories that need rework:
 
 ### 6c. Update Execution Log
 
-Append to `execution_log` in `phase-state.json`:
+Append to `execution_log` in `SPRINT_DIR/phase-state.json`:
 
 ```json
 {
@@ -432,14 +441,14 @@ Append to `execution_log` in `phase-state.json`:
 
 For each epic containing audited stories:
 - Recalculate epic status from updated story statuses
-- Update `epic_status` in `phase-state.json`
-- Update `Status:` in `epics.md`
+- Update `epic_status` in `SPRINT_DIR/phase-state.json`
+- Update `Status:` in `SPRINT_DIR/epics.md`
 
 ---
 
 ## 7. Write Audit Summary
 
-Write to `.omc/sprint-plan/current/audit-report.md` (append if exists):
+Write to `SPRINT_DIR/audit-report.md` (append if exists):
 
 ```markdown
 ## Audit: {date}
@@ -494,7 +503,7 @@ Write to `.omc/sprint-plan/current/audit-report.md` (append if exists):
     {if tdd}✓ TDD Tests (failing tests as validation gate){/if}
     ✓ Status reset to ready-for-dev
 
-  Audit report: current/audit-report.md
+  Audit report: SPRINT_DIR/audit-report.md
 
   Re-run affected stories:
     {list /sprint-exec --story=N.M commands}

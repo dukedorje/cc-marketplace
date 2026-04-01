@@ -2,11 +2,13 @@
 name: status
 description: Quick alias for /update-status --show. Displays sprint phase, artifacts created, and epic/story status dashboard.
 user-invocable: true
-argument-hint: ""
+argument-hint: "[--sprint=ID]"
 ---
 
 # status: Sprint Status Overview
 
-This is a convenience alias. Invoke `/update-status --show` with no additional arguments.
+This is a convenience alias for `/update-status --show`.
 
-Read this skill's instructions and then execute exactly as if the user had typed `/update-status --show`.
+If the user provided a `--sprint=ID` argument, pass it through: invoke `/update-status --show --sprint=ID`.
+
+Otherwise, invoke `/update-status --show` with no additional arguments.

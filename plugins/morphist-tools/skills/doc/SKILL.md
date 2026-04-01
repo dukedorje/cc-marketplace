@@ -2,7 +2,7 @@
 name: doc
 description: Create or update permanent documentation in docs/. Auto-enriches with sprint context, architecture decisions, and code references when available.
 user-invocable: true
-argument-hint: "<topic-or-path> [--from-story=N.M] [--from-epic=N] [--from-decision=D-NNN]"
+argument-hint: "<topic-or-path> [--from-story=N.M] [--from-epic=N] [--from-decision=D-NNN] [--sprint=ID]"
 ---
 
 # doc: Permanent Documentation Writer
@@ -67,34 +67,48 @@ Create any necessary subdirectories.
 
 ---
 
-## 3. Gather Source Material
+## 3. Sprint Resolution
 
-### 3a. If `--from-story=N.M`
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
+
+Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+
+Skip this section if no `--from-story`, `--from-epic`, or `--from-decision` flag was provided — sprint context is optional for `/doc`.
+
+---
+
+## 4. Gather Source Material
+
+### 4a. If `--from-story=N.M`
 
 Read:
-- Story file: `.omc/sprint-plan/current/stories/{story_file}`
+- Story file: `SPRINT_DIR/stories/{story_file}`
 - Architecture decisions referenced by the story
 - Files listed in the Dev Agent Record (read each file for implementation details)
 - Any existing work log entries referencing this story
 
-### 3b. If `--from-epic=N`
+### 4b. If `--from-epic=N`
 
 Read:
 - All story files in the epic
 - Architecture decisions referenced by any story in the epic
-- Epic section from `epics.md`
-- Decision graph entries for this epic (if `decision-graph.md` exists)
+- Epic section from `SPRINT_DIR/epics.md`
+- Decision graph entries for this epic (if `SPRINT_DIR/decision-graph.md` exists)
 - Work log entries referencing this epic
 
-### 3c. If `--from-decision=D-NNN`
+### 4c. If `--from-decision=D-NNN`
 
 Read:
-- The decision from `architecture-decisions.md`
+- The decision from `SPRINT_DIR/architecture-decisions.md`
 - Decision graph: which stories depend on this decision
 - Story files that reference this decision (Architecture Compliance sections)
 - Replan log entries for this decision (if any)
 
-### 3d. Topic Only (no `--from-*`)
+### 4d. Topic Only (no `--from-*`)
 
 Read the codebase for relevant context:
 - Search for files related to the topic (Glob/Grep)
@@ -103,7 +117,7 @@ Read the codebase for relevant context:
 
 ---
 
-## 4. Generate Documentation
+## 5. Generate Documentation
 
 Dispatch a writer agent (sonnet) to create the document:
 
@@ -147,7 +161,7 @@ into plain technical documentation.
 
 ---
 
-## 5. Write the Document
+## 6. Write the Document
 
 Write the generated content to the determined path.
 
@@ -167,11 +181,11 @@ If the file already exists and `--update` was NOT specified:
 
 ---
 
-## 6. Cross-Reference
+## 7. Cross-Reference
 
-### 6a. Log the Doc Creation
+### 7a. Log the Doc Creation
 
-If a sprint is active, append to the work log (`.omc/sprint-plan/current/work-log.md`):
+If a sprint is active, append to the work log (`SPRINT_DIR/work-log.md`):
 
 ```markdown
 ---
@@ -186,7 +200,7 @@ Created documentation: [{doc_title}]({doc_path})
 **Tags**: documentation
 ```
 
-### 6b. Reference in Story/Epic
+### 7b. Reference in Story/Epic
 
 If `--from-story` or `--from-epic` was used, add a reference in the story file(s) under `## Work Log` (create if needed):
 
@@ -196,7 +210,7 @@ If `--from-story` or `--from-epic` was used, add a reference in the story file(s
 
 ---
 
-## 7. Confirm to User
+## 8. Confirm to User
 
 ```
 Doc created: {doc_path}

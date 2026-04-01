@@ -2,7 +2,7 @@
 name: sprint-validate
 description: Full adversarial validation of sprint planning artifacts — FR coverage, architecture compliance, story quality, and mechanical correctness. Produces a readiness report.
 user-invocable: true
-argument-hint: "[--fix] [--force]"
+argument-hint: "[--fix] [--force] [--sprint=ID]"
 ---
 
 # sprint-validate: Full Sprint Validation Gate
@@ -15,9 +15,15 @@ This is the full validation gate — for a quick smoke test of executed stories,
 
 ## 1. Prerequisites
 
-Read `.omc/sprint-plan/current/phase-state.json`.
+### Sprint Resolution
 
-If no sprint exists: `No active sprint found. Run /sprint-plan first.`
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
+
+Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
 
 This skill can run at any point after story enrichment (Phase 4). It does not require `current_phase` to be `"validation"` — use `--force` to run even if stories are incomplete.
 
@@ -42,7 +48,7 @@ Both agents are dispatched in parallel. See the phase file for full agent prompt
 
 ## 4. Output
 
-Write `.omc/sprint-plan/current/readiness-report.md` with:
+Write `SPRINT_DIR/readiness-report.md` with:
 - Overall status: READY / READY WITH WARNINGS / NOT READY
 - FR coverage matrix
 - Architecture compliance summary
@@ -51,7 +57,7 @@ Write `.omc/sprint-plan/current/readiness-report.md` with:
 - Decision summary
 - Sprint statistics
 
-Update `phase-state.json`: set `validation_status` to `"pass"` or `"fail"`.
+Update `SPRINT_DIR/phase-state.json`: set `validation_status` to `"pass"` or `"fail"`.
 
 Present the readiness report to the user.
 

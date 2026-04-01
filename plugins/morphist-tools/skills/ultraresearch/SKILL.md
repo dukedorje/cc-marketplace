@@ -202,7 +202,7 @@ Other skills invoke ultra-research by spawning an agent with these parameters in
 - QUESTION: <the research question>
 - MODE: research | engineering | quick
 - DEPTH: 1 | 2 | 3
-- OUTPUT_DIR: <caller-specified path, e.g., .omc/sprint-plan/current/research/topic-slug>
+- OUTPUT_DIR: <caller-specified path, e.g., .omc/sprint-plan/sprint-001/research/topic-slug>
 - MAX_BRANCHES: <number>
 - CONTEXT: <optional — any context the caller wants to inject, e.g., existing requirements, constraints>
 ```
@@ -262,7 +262,7 @@ Agent(
 - QUESTION: What are the tradeoffs between Drizzle ORM and Prisma for a multi-tenant SaaS with row-level security?
 - MODE: engineering
 - DEPTH: 2
-- OUTPUT_DIR: .omc/sprint-plan/current/research/orm-tradeoffs
+- OUTPUT_DIR: .omc/sprint-plan/sprint-001/research/orm-tradeoffs
 - MAX_BRANCHES: 4
 - CONTEXT: |
     Project uses PostgreSQL (D-001). Multi-tenant with row-level security (FR7).
@@ -276,7 +276,7 @@ Write all output to the specified OUTPUT_DIR.
 )
 
 # After agent completes, the caller reads:
-# .omc/sprint-plan/current/research/orm-tradeoffs/summary.json
+# .omc/sprint-plan/sprint-001/research/orm-tradeoffs/summary.json
 # to get structured findings, then injects them into the architecture decision.
 ```
 

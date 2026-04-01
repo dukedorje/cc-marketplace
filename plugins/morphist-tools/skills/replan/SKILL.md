@@ -2,7 +2,7 @@
 name: replan
 description: Scoped mid-sprint replanning when architecture assumptions, libraries, or dependencies break. Updates affected decisions, propagates changes to story specs, and marks stories for re-execution.
 user-invocable: true
-argument-hint: "[--story=N.M] [--epic=N] [--decision=D-NNN] [--reason=\"...\"] [--dry-run]"
+argument-hint: "[--story=N.M] [--epic=N] [--decision=D-NNN] [--reason=\"...\"] [--dry-run] [--sprint=ID]"
 ---
 
 # replan: Scoped Mid-Sprint Course Correction
@@ -29,20 +29,29 @@ At least one of `--story`, `--epic`, `--decision`, or `--reason` must be provide
 
 ## 2. Gather Context
 
-### 2a. Read Sprint Artifacts
+### 2a. Sprint Resolution
+
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `SPRINT_DIR/`
+4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
+
+Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+
+### 2b. Read Sprint Artifacts
 
 Read the following files:
-- `.omc/sprint-plan/current/phase-state.json`
-- `.omc/sprint-plan/current/architecture-decisions.md`
-- `.omc/sprint-plan/current/epics.md`
-- `.omc/sprint-plan/current/requirements.md`
+- `SPRINT_DIR/architecture-decisions.md`
+- `SPRINT_DIR/epics.md`
+- `SPRINT_DIR/requirements.md`
 
 If `--story=N.M` is specified:
-- Read the story file from `current/stories/`
+- Read the story file from `SPRINT_DIR/stories/`
 - Extract `blocker_type`, `blocker_detail`, and `Completion Notes` from the Dev Agent Record
 - Extract the `decisions` list from story frontmatter (architecture decisions this story depends on)
 
-### 2b. Identify the Broken Assumption
+### 2c. Identify the Broken Assumption
 
 Determine what needs to change based on available context:
 
@@ -297,7 +306,7 @@ If the graph file does not exist, skip this step — the graph will be built on 
 
 ## 7. Write Replan Log
 
-Write the replan record to `.omc/sprint-plan/current/replan-log.md` (append if file exists):
+Write the replan record to `SPRINT_DIR/replan-log.md` (append if file exists):
 
 ```markdown
 ## Replan: {date}

@@ -2,7 +2,7 @@
 name: sprint-exec
 description: Execute validated sprint stories by dispatching to OMC execution primitives. Default: next epic. Use --full-auto for all remaining epics, --next-story for one story at a time.
 user-invocable: true
-argument-hint: "[--epic=N] [--story=N.M] [--next-story] [--full-auto] [--dry-run] [--concurrency=N]"
+argument-hint: "[--epic=N] [--story=N.M] [--next-story] [--full-auto] [--dry-run] [--concurrency=N] [--sprint=ID]"
 ---
 
 # sprint-exec: Thin OMC Dispatcher
@@ -13,19 +13,29 @@ Reads validated story files, builds a task manifest, and dispatches to OMC execu
 
 ## 1. Initialization
 
-### 1a. Read Readiness Report
+### 1a. Sprint Resolution
 
-Read `.omc/sprint-plan/current/readiness-report.md`.
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
+
+Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+
+### 1b. Read Readiness Report
+
+Read `SPRINT_DIR/readiness-report.md`.
 
 If not found: `No readiness report found. Run /sprint-plan first.`
 
 Check `validation_status` — must be `pass` or `pass-with-warnings`. If `pass-with-warnings`, display warnings before proceeding.
 
-### 1b. Read Phase State
+### 1c. Read Phase State
 
-Read `.omc/sprint-plan/current/phase-state.json`. Extract `sprint_number` and epic count from `current/epics.md`.
+Read `SPRINT_DIR/phase-state.json`. Extract `sprint_number` and epic count from `SPRINT_DIR/epics.md`.
 
-### 1c. Parse Arguments
+### 1d. Parse Arguments
 
 | Flag | Default | Behavior |
 |------|---------|----------|
@@ -46,13 +56,13 @@ Read `.omc/sprint-plan/current/phase-state.json`. Extract `sprint_number` and ep
 
 When a decision point is below the stop threshold, auto-resolve (accept partial, proceed, log with `"auto_resolved": true`).
 
-### 1d. Check Existing Execution Status
+### 1e. Check Existing Execution Status
 
 - `"complete"`: Inform user, stop unless explicit scope flag provided
 - `"in-progress"`: Resume — skip stories/epics already done (use `resume_point` if available)
 - `"halted"`: Show halt reason, wait for confirmation, then resume
 
-### 1e. Update Phase State
+### 1f. Update Phase State
 
 Add sibling fields (do NOT modify `current_phase`):
 
@@ -67,7 +77,7 @@ Add sibling fields (do NOT modify `current_phase`):
 
 Initialize `epic_status` for in-scope epics to `"pending"`. Preserve existing state if resuming.
 
-### 1f. Register with OMC State
+### 1g. Register with OMC State
 
 If OMC state tools are available (non-blocking):
 ```
@@ -86,11 +96,11 @@ If `--dry-run`: print execution plan showing each epic/story with status and dis
 
 ### 3a. Read Epic Ordering
 
-Read `current/epics.md` for the ordered list of epics and their stories.
+Read `SPRINT_DIR/epics.md` for the ordered list of epics and their stories.
 
 ### 3b. Resolve Story Files
 
-Stories at: `.omc/sprint-plan/current/stories/{epic}-{story}-{slug}.md`
+Stories at: `SPRINT_DIR/stories/{epic}-{story}-{slug}.md`
 
 For each story, read frontmatter to get `status`, `title`, `decisions`, and AC count.
 
@@ -107,7 +117,7 @@ For each eligible story, build a task object:
   "story_id": "N.M",
   "epic": N,
   "title": "Story title",
-  "file_path": ".omc/sprint-plan/current/stories/N-M-slug.md",
+  "file_path": "SPRINT_DIR/stories/N-M-slug.md",
   "ac_count": 5,
   "decision_ids": ["D-001", "D-003"],
   "status": "ready-for-dev"
@@ -136,7 +146,7 @@ Agent(
 You are implementing a story from the sprint plan.
 
 Working directory: {working_directory}
-Sprint directory: .omc/sprint-plan/current/
+Sprint directory: SPRINT_DIR/
 Story file: {story_file_path}
 Story: {story_title} ({story_id})
 Acceptance criteria count: {ac_count}

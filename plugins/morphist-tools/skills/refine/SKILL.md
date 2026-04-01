@@ -2,7 +2,7 @@
 name: refine
 description: Refine any sprint artifact with Planner-Architect-Critic consensus. Scope to a phase, epic, or story. When targeting an epic, enables interactive deep-dive with decision graph propagation.
 user-invocable: true
-argument-hint: "[<phase>] [--epic=N] [--story=N.M] [--graph] [--propagate] [--force]"
+argument-hint: "[<phase>] [--epic=N] [--story=N.M] [--graph] [--propagate] [--force] [--sprint=ID]"
 ---
 
 # refine: Artifact Refinement & Epic Deep-Dive
@@ -56,14 +56,19 @@ Valid phases: requirements, sprint-scoping, architecture, epics, stories, enrich
 
 ---
 
-## 2. Validate Phase Completion
+## 2. Sprint Resolution & Phase Validation
 
-Read `.omc/sprint-plan/current/phase-state.json`.
+### Sprint Resolution
 
-If the file does not exist:
-```
-No active sprint found. Run /sprint-plan first to initialize a sprint.
-```
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `SPRINT_DIR/`
+4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
+
+Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+
+### Validate Phase Completion
 
 Check that the specified phase has been completed:
 
@@ -113,13 +118,13 @@ Load ONLY the artifact file for the specified phase (context shedding).
 | Phase | Artifact Path |
 |-------|--------------|
 | prd | `.omc/sprint-plan/prd-{slug}.md` (most recent by mtime) |
-| requirements | `.omc/sprint-plan/current/requirements.md` |
-| sprint-scoping | `.omc/sprint-plan/current/sprint-scope.md` |
-| architecture | `.omc/sprint-plan/current/architecture-decisions.md` |
-| epics | `.omc/sprint-plan/current/epics.md` |
-| stories | `.omc/sprint-plan/current/epics.md` (stories sections) |
-| enrichment | All files in `.omc/sprint-plan/current/stories/` |
-| retro | `.omc/sprint-plan/current/retrospective.md` |
+| requirements | `SPRINT_DIR/requirements.md` |
+| sprint-scoping | `SPRINT_DIR/sprint-scope.md` |
+| architecture | `SPRINT_DIR/architecture-decisions.md` |
+| epics | `SPRINT_DIR/epics.md` |
+| stories | `SPRINT_DIR/epics.md` (stories sections) |
+| enrichment | All files in `SPRINT_DIR/stories/` |
+| retro | `SPRINT_DIR/retrospective.md` |
 
 ### Scoped artifact loading
 
@@ -352,7 +357,7 @@ Activated when `--epic=N` (or `--story=N.M`) is used without a phase name. This 
 
 ### 10a. Load Context
 
-Read from `.omc/sprint-plan/current/`:
+Read from `SPRINT_DIR/`:
 - `phase-state.json` — execution status, epic status
 - `architecture-decisions.md` — current ADRs
 - `epics.md` — epic definitions and dependencies
@@ -585,7 +590,7 @@ Decision Graph for Epic {N}:
 
 ## 12. Decision Graph
 
-The decision graph is a persistent artifact at `.omc/sprint-plan/current/decision-graph.md` mapping architecture decisions to dependent stories.
+The decision graph is a persistent artifact at `SPRINT_DIR/decision-graph.md` mapping architecture decisions to dependent stories.
 
 ### 12a. Format
 

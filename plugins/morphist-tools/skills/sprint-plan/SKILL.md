@@ -2,7 +2,7 @@
 name: sprint-plan
 description: Multi-phase sprint planning workflow that transforms product ideas into implementation-ready user stories with architecture decisions, requirements expansion, and adversarial validation
 user-invocable: true
-argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--auto] [--step] [--sprint-size=SIZE] [--continue[=phase]] [--restart-from=phase]"
+argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--auto] [--step] [--sprint-size=SIZE] [--continue[=phase]] [--restart-from=phase] [--sprint=ID]"
 ---
 
 # Sprint Plan — Thin Orchestrator
@@ -31,6 +31,7 @@ Parse `$ARGUMENTS` for:
 | `--skip-ux` | Skip Phase 1.5 even if frontend detected |
 | `--continue[=phase]` | Resume from next incomplete phase (or after specified phase) |
 | `--restart-from=phase` | Re-run a phase and mark all downstream stale |
+| `--sprint=ID` | Target a specific sprint (e.g., `--sprint=sprint-002`). For `--continue`/`--restart-from`, operates on this sprint instead of the most recent. For new sprints, ignored. |
 
 **Precedence**: `--thorough` > `--fast`. `--restart-from` > `--continue`. `--step` > `--auto`. `--fast` implies `--auto`.
 
@@ -44,6 +45,7 @@ Parse `$ARGUMENTS` for:
 2. Create directories: `.omc/sprint-plan/sprint-{NNN}/stories` and `.omc/sprint-plan/decisions`.
 3. Update symlink: `rm -f .omc/sprint-plan/current && ln -s sprint-{NNN} .omc/sprint-plan/current`.
 4. Write `.omc/sprint-plan/AGENTS.md` — static pointer: "Sprint artifacts in `.omc/sprint-plan/current/`".
+5. Set `SPRINT_DIR` = `.omc/sprint-plan/sprint-{NNN}/`.
 
 ### 2b. Initialize phase-state.json
 
@@ -72,20 +74,24 @@ Set `steering_mode` to `GUIDED` if thorough, `AUTONOMOUS` if fast.
 
 ### 2c. OMC State (optional)
 
-If `state_write` available: register `{ mode: "sprint-plan", active: true, current_sprint: "sprint-{NNN}" }`. Skip if unavailable.
+If `state_write` available:
+1. Register `{ mode: "sprint-plan", active: true, current_sprint: "sprint-{NNN}" }`. Skip if unavailable.
+2. Write session-scoped sprint binding: key `morphist.active_sprint`, value `sprint-{NNN}`. This allows other skills in the same session to auto-resolve to this sprint without relying on the `current` symlink.
 
 ### 2d. Handle --continue
 
-1. Find most recent `sprint-NNN/`. Read `phase-state.json`.
-2. Without phase arg: resume from next phase after `current_phase`.
-3. With phase arg (`--continue=<phase>`): verify artifact exists, resume from next phase.
-4. Update symlink and `current_phase`. Report: "Resuming sprint {NNN} from {phase}."
+1. If `--sprint=<id>` provided, use `.omc/sprint-plan/<id>/`. Otherwise find most recent `sprint-NNN/`.
+2. Read `phase-state.json`. Set `SPRINT_DIR` = `.omc/sprint-plan/<resolved>/`.
+3. Without phase arg: resume from next phase after `current_phase`.
+4. With phase arg (`--continue=<phase>`): verify artifact exists, resume from next phase.
+5. Update symlink and `current_phase`. Register in OMC session state (step 2c). Report: "Resuming sprint {NNN} from {phase}."
 
 ### 2e. Handle --restart-from
 
-1. Find most recent `sprint-NNN/`. Read `phase-state.json`.
-2. Mark specified phase + all downstream as stale.
-3. Update symlink and `current_phase`. Report: "Restarting from {phase}. Downstream marked stale."
+1. If `--sprint=<id>` provided, use `.omc/sprint-plan/<id>/`. Otherwise find most recent `sprint-NNN/`.
+2. Read `phase-state.json`. Set `SPRINT_DIR` = `.omc/sprint-plan/<resolved>/`.
+3. Mark specified phase + all downstream as stale.
+4. Update symlink and `current_phase`. Register in OMC session state (step 2c). Report: "Restarting from {phase}. Downstream marked stale."
 
 ---
 
@@ -94,9 +100,9 @@ If `state_write` available: register `{ mode: "sprint-plan", active: true, curre
 Execute phases sequentially. For each phase:
 1. Read phase instruction file from `${CLAUDE_SKILL_DIR}/phases/`.
 2. Load previous phase's output artifact (context shedding — read from disk, not memory).
-3. Dispatch agent(s) per the phase file.
-4. Write output to the correct path.
-5. Update `current_phase` and metrics in `phase-state.json`.
+3. Dispatch agent(s) per the phase file. Include in the agent prompt: **"For this execution, `SPRINT_DIR` = `{resolved path}`."** Phase files use `SPRINT_DIR` as the artifact path prefix.
+4. Write output to the correct path under `SPRINT_DIR/`.
+5. Update `current_phase` and metrics in `SPRINT_DIR/phase-state.json`.
 6. Run Decision Steering if active for this phase.
 7. Inter-phase summary & pause (if applicable).
 

@@ -206,9 +206,9 @@ Your role: PLANNER — design the epic structure.
 ## Inputs
 
 Read the following files:
-- .omc/sprint-plan/current/requirements.md (Phase 1 output — all FRs, NFRs, constraints)
-- .omc/sprint-plan/current/architecture-decisions.md (Phase 2A output — all architecture decisions)
-- .omc/sprint-plan/current/discovery.md (Phase 0 output — project context)
+- SPRINT_DIR/requirements.md (Phase 1 output — all FRs, NFRs, constraints)
+- SPRINT_DIR/architecture-decisions.md (Phase 2A output — all architecture decisions)
+- SPRINT_DIR/discovery.md (Phase 0 output — project context)
 
 ## Task
 
@@ -232,7 +232,7 @@ For each epic provide:
 
 ## Output
 
-Write the complete epic structure to .omc/sprint-plan/current/epics.md using the output schema from the phase instructions.
+Write the complete epic structure to SPRINT_DIR/epics.md using the output schema from the phase instructions.
 
 Include:
 1. Requirements Inventory (all FRs, NFRs, architecture requirements)
@@ -258,9 +258,9 @@ Your role: ARCHITECT — review the proposed epic structure.
 ## Inputs
 
 Read the following files:
-- .omc/sprint-plan/current/epics.md (planner's proposed epic structure)
-- .omc/sprint-plan/current/architecture-decisions.md (Phase 2A output)
-- .omc/sprint-plan/current/requirements.md (Phase 1 output)
+- SPRINT_DIR/epics.md (planner's proposed epic structure)
+- SPRINT_DIR/architecture-decisions.md (Phase 2A output)
+- SPRINT_DIR/requirements.md (Phase 1 output)
 
 ## Task
 
@@ -279,7 +279,7 @@ For each epic, mark:
 
 ## Output
 
-Update .omc/sprint-plan/current/epics.md with your review marks and any proposed modifications.
+Update SPRINT_DIR/epics.md with your review marks and any proposed modifications.
 """,
 )
 ```
@@ -298,9 +298,9 @@ Your role: CRITIC — validate FR coverage, dependencies, and epic quality.
 ## Inputs
 
 Read the following files:
-- .omc/sprint-plan/current/epics.md (with architect's review marks)
-- .omc/sprint-plan/current/requirements.md (Phase 1 output)
-- .omc/sprint-plan/current/architecture-decisions.md (Phase 2A output)
+- SPRINT_DIR/epics.md (with architect's review marks)
+- SPRINT_DIR/requirements.md (Phase 1 output)
+- SPRINT_DIR/architecture-decisions.md (Phase 2A output)
 
 ## Task
 
@@ -323,7 +323,7 @@ Read the following files:
 
 ## Output
 
-Update .omc/sprint-plan/current/epics.md with validation results.
+Update SPRINT_DIR/epics.md with validation results.
 
 For each issue: [CRITIC: ISSUE — {description with specific fix suggestion}].
 If all valid: [CRITIC: VALIDATED].

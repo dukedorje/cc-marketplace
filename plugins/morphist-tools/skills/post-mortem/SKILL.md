@@ -2,7 +2,7 @@
 name: post-mortem
 description: Incident post-mortem for a story or epic — analyzes what went wrong, documents root cause and lessons learned directly in story docs so future agents learn from past failures.
 user-invocable: true
-argument-hint: "[--story=N.M] [--epic=N] [--incident=\"...\"] [--dry-run]"
+argument-hint: "[--story=N.M] [--epic=N] [--incident=\"...\"] [--dry-run] [--sprint=ID]"
 ---
 
 # post-mortem: Story-Level Incident Documentation
@@ -42,20 +42,29 @@ Examples:
 
 ## 2. Gather Context
 
-### 2a. Read Sprint Artifacts
+### 2a. Sprint Resolution
+
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `SPRINT_DIR/`
+4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
+
+Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+
+### 2b. Read Sprint Artifacts
 
 Read:
-- `.omc/sprint-plan/current/phase-state.json`
-- `.omc/sprint-plan/current/architecture-decisions.md`
-- `.omc/sprint-plan/current/epics.md`
-- `.omc/sprint-plan/current/requirements.md`
-- `.omc/sprint-plan/current/decision-graph.md` (if exists)
-- `.omc/sprint-plan/current/replan-log.md` (if exists)
-- `.omc/sprint-plan/current/work-log.md` (if exists)
+- `SPRINT_DIR/architecture-decisions.md`
+- `SPRINT_DIR/epics.md`
+- `SPRINT_DIR/requirements.md`
+- `SPRINT_DIR/decision-graph.md` (if exists)
+- `SPRINT_DIR/replan-log.md` (if exists)
+- `SPRINT_DIR/work-log.md` (if exists)
 
-### 2b. Identify Stories in Scope
+### 2c. Identify Stories in Scope
 
-**If `--story=N.M`**: Read that single story file from `current/stories/`.
+**If `--story=N.M`**: Read that single story file from `SPRINT_DIR/stories/`.
 
 **If `--epic=N`**: Read all story files in the epic. Select stories that are candidates for post-mortem — any story with:
 - `status: failed`
@@ -72,7 +81,7 @@ All stories appear healthy. Nothing to post-mortem.
 To force a post-mortem on a specific story: /post-mortem --story=N.M
 ```
 
-### 2c. Collect Implementation Evidence
+### 2d. Collect Implementation Evidence
 
 For each story in scope, gather:
 1. The full story file (spec + Dev Agent Record)
@@ -332,7 +341,7 @@ If the story has an existing `## Audit Report` section, cross-reference:
 
 ## 6. Write Epic-Level Summary (if `--epic`)
 
-When analyzing multiple stories in an epic, create or update an epic-level post-mortem summary at `.omc/sprint-plan/current/post-mortems/epic-{N}.md`:
+When analyzing multiple stories in an epic, create or update an epic-level post-mortem summary at `SPRINT_DIR/post-mortems/epic-{N}.md`:
 
 ```markdown
 ---
@@ -382,7 +391,7 @@ Create the `post-mortems/` directory if it doesn't exist.
 
 ### 7a. Update Work Log
 
-Append to the sprint work log (`.omc/sprint-plan/current/work-log.md`):
+Append to the sprint work log (`SPRINT_DIR/work-log.md`):
 
 ```markdown
 ---

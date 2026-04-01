@@ -64,8 +64,8 @@ designer_result = Agent(
 You are the Designer agent running Phase 1.5: UX Design.
 
 Read the following inputs:
-- Requirements: .omc/sprint-plan/current/requirements.md
-- Discovery: .omc/sprint-plan/current/discovery.md
+- Requirements: SPRINT_DIR/requirements.md
+- Discovery: SPRINT_DIR/discovery.md
 
 From requirements.md, focus on:
 - All functional requirements tagged as frontend/UI (any FR involving user interaction, display, forms, navigation)
@@ -166,7 +166,7 @@ Return your complete structured output. Do not write any files — the orchestra
 
 ## Output
 
-Write the designer agent's output to `.omc/sprint-plan/current/ux-design.md` with this frontmatter:
+Write the designer agent's output to `SPRINT_DIR/ux-design.md` with this frontmatter:
 
 ```markdown
 ---
@@ -174,8 +174,8 @@ project: [name from requirements.md]
 sprint: sprint-[NNN]
 created: [date]
 phase: 1.5-ux-design
-source_requirements: .omc/sprint-plan/current/requirements.md
-source_discovery: .omc/sprint-plan/current/discovery.md
+source_requirements: SPRINT_DIR/requirements.md
+source_discovery: SPRINT_DIR/discovery.md
 ---
 
 # UX Design

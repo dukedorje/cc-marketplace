@@ -14,8 +14,8 @@ Generates formatted progress reports for epic completion or full sprint completi
 
 This skill is called with context about which epic just completed. It reads:
 - `phase-state.json` for `epic_status`, `execution_log`, `sprint_number`
-- Story files in `current/stories/{N}-*` for the completed epic
-- `current/epics.md` for epic titles and next-epic information
+- Story files in `SPRINT_DIR/stories/{N}-*` for the completed epic
+- `SPRINT_DIR/epics.md` for epic titles and next-epic information
 
 ---
 
@@ -47,7 +47,7 @@ After an epic completes, output:
 
   {if not last_epic}
   Next: Epic {N+1}: {next_epic_title}
-  Background code review dispatched -> .omc/sprint-plan/current/reviews/epic-{N}-review.md
+  Background code review dispatched -> SPRINT_DIR/reviews/epic-{N}-review.md
   {/if}
 ═══════════════════════════════════════════════════
 ```

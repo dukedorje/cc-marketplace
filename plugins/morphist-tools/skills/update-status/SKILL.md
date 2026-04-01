@@ -2,7 +2,7 @@
 name: update-status
 description: Manually update epic or story status in sprint artifacts. Use when automatic status tracking didn't work or to correct statuses after manual intervention.
 user-invocable: true
-argument-hint: "[--epic=N --status=done] [--story=N.M --status=done] [--show]"
+argument-hint: "[--epic=N --status=done] [--story=N.M --status=done] [--show] [--sprint=ID]"
 ---
 
 # update-status: Manual Epic & Story Status Manager
@@ -15,14 +15,15 @@ Manually view and update epic and story statuses in sprint planning artifacts. U
 
 ### 1a. Locate Sprint Artifacts
 
-Read `.omc/sprint-plan/current/phase-state.json` to confirm an active sprint exists.
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-If the file does not exist, halt:
-```
-No sprint found. Run /sprint-plan first to create a sprint.
-```
+Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
 
-Read `.omc/sprint-plan/current/epics.md` to get the epic list.
+Read `SPRINT_DIR/epics.md` to get the epic list.
 
 ### 1b. Parse Arguments
 
@@ -66,7 +67,7 @@ Read `phase-state.json` and extract:
 - `stale_phases` (if any)
 - `refine_passes` (if any)
 
-List artifacts in `current/` to determine what exists:
+List artifacts in `SPRINT_DIR/` to determine what exists:
 
 ```
 ═══════════════════════════════════════════════════
@@ -119,7 +120,7 @@ If no epics exist yet (phase is before `epic-design`), display only the sprint o
 
 ### 2b. Collect Story Statuses
 
-Use Glob to find all story files in `.omc/sprint-plan/current/stories/`.
+Use Glob to find all story files in `SPRINT_DIR/stories/`.
 
 For each story file, read frontmatter to extract:
 - `status` (ready-for-dev, in-progress, done, failed, blocked)
@@ -134,7 +135,7 @@ Also scan `epics.md` for any `Status:` lines under epic headings.
 
 ### 2c. Load Decision Graph
 
-Read `.omc/sprint-plan/current/decision-graph.md` if it exists. For each epic, extract the ADRs that affect its stories (any ADR whose story list includes a story in that epic).
+Read `SPRINT_DIR/decision-graph.md` if it exists. For each epic, extract the ADRs that affect its stories (any ADR whose story list includes a story in that epic).
 
 ### 2d. Display Status Dashboard
 
@@ -185,7 +186,7 @@ If any epic has stories that are all `done` but the epic itself isn't marked `do
 
 ## 3. Update Story Status (`--story=N.M --status=VALUE`)
 
-1. Resolve the story file path: `.omc/sprint-plan/current/stories/{N}-{M}-*.md`
+1. Resolve the story file path: `SPRINT_DIR/stories/{N}-{M}-*.md`
    - Use Glob to find the matching file
    - If no match found, halt: `Story {N.M} not found in current sprint.`
 2. Read the story file

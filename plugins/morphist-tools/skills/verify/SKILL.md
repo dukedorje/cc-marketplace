@@ -2,7 +2,7 @@
 name: verify
 description: Quick independent verification that an epic's stories were actually built. Checks file existence, build health, and AC coverage without the full depth of `/audit`.
 user-invocable: true
-argument-hint: "[--epic=N] [--story=N.M] [--all]"
+argument-hint: "[--epic=N] [--story=N.M] [--all] [--sprint=ID]"
 ---
 
 # verify: Lightweight Epic Completion Gate
@@ -32,13 +32,25 @@ No completed epics found. Run /sprint-exec first.
 
 ---
 
+## 1a. Sprint Resolution
+
+Resolve the target sprint directory (`SPRINT_DIR`):
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
+
+Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+
+---
+
 ## 2. Gather Context
 
 ### 2a. Read Sprint Artifacts
 
 Read:
-- `.omc/sprint-plan/current/phase-state.json`
-- `.omc/sprint-plan/current/architecture-decisions.md`
+- `SPRINT_DIR/phase-state.json`
+- `SPRINT_DIR/architecture-decisions.md`
 
 ### 2b. Collect Stories to Verify
 
