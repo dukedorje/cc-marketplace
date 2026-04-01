@@ -138,8 +138,8 @@ Execute phases sequentially. For each phase:
 
 - **Phase 1.5 trigger**: Run if `has_frontend: true` AND `has_ux_artifacts: false` AND not `--skip-ux` AND not `--fast`. Otherwise skip (`ux_design_phase: "skipped"`).
 - **Phase 2A refinement loop** (thorough only): If decisions create new requirements, loop back to Phase 1 (incremental), then re-run 2A. Max 3 iterations via `refinement_loops.requirements_architecture.count`.
-- **Phase 3**: Epics sequential (forward intelligence). Stories parallel within each epic.
-- **Phase 4**: Stories parallel within epic, sequential across epics. Agents read artifact files directly (do not inject full content).
+- **Phase 3**: All epics decompose in parallel (each planner gets full `epics.md` for context). BDD writers fire in parallel across all stories. Post-decomposition reconciliation scan catches cross-epic issues.
+- **Phase 4**: All stories across all epics enrich in parallel. Shared context manifest replaces sequential backward intelligence. Post-enrichment reconciliation catches file ownership conflicts and pattern divergence.
 - **Phase 5**: Auto-fix loop (max 2 iterations). Readiness report always shown.
 
 ### Inter-Phase Summary & Pause

@@ -25,27 +25,26 @@ Load from `current/` at phase start (context shedding — load artifacts only, n
 
 ## Process
 
-### Step 1: Sequential Epic Loop
+### Step 1: Parallel Epic Decomposition (fan-out)
 
-Process epics **in order** (Epic 1 first, then Epic 2, etc.). Later epics reference patterns and entities established by earlier ones. Do not parallelize across epics.
+Process all epics **in parallel**. Each planner agent receives the **full** `epics.md` (all epics, not just its own) so it can see scope boundaries and avoid overlap. Architecture decisions and requirements are also shared.
 
-### Step 2: Per-Epic Decomposition
-
-For each epic, run the following sequence:
-
-#### 2a. Planner Story Decomposition
-
-Dispatch one `planner` (opus) agent per epic:
+Dispatch one `planner` (opus) agent per epic, all simultaneously:
 
 ```
+# For each epic (ALL in parallel):
 Agent(
   subagent_type="oh-my-claudecode:planner",
   model="opus",
+  run_in_background=True,
   prompt="""
 You are decomposing Epic {epic_num}: {epic_title} into implementation-ready story stubs.
 
-## Epic Details
-{epic_content_from_epics_md}
+## YOUR Epic Details
+{epic_content_from_epics_md_for_this_epic}
+
+## ALL Epics (for context — understand scope boundaries, avoid overlap)
+Read the full epic plan from: SPRINT_DIR/epics.md
 
 ## Architecture Decisions
 Read the full architecture decisions from: SPRINT_DIR/architecture-decisions.md
@@ -60,6 +59,8 @@ Read the full requirements from: SPRINT_DIR/requirements.md
 - Each story must reference which FRs it implements
 - Use user story format: "As a [role], I want [action], so that [benefit]"
 - Assign estimated complexity: small | medium | large
+- Be aware of what OTHER epics cover — don't duplicate their scope into your stories
+- If your epic depends on entities/patterns from another epic, reference them by name but don't recreate them
 
 ## Output Format
 Return a JSON array of story stubs:
@@ -78,14 +79,16 @@ Return a JSON array of story stubs:
 )
 ```
 
-#### 2b. Parallel BDD Criteria Writing
+### Step 2: Parallel BDD Criteria Writing
 
-For each story stub returned by the planner, fire a `writer` (sonnet) agent **in parallel** (all stories within an epic at the same time):
+After all planner agents return, fire BDD writers for **all stories across all epics** in parallel:
 
 ```
+# For each story across ALL epics (parallel):
 Agent(
   subagent_type="oh-my-claudecode:writer",
   model="sonnet",
+  run_in_background=True,
   prompt="""
 Write BDD acceptance criteria for this story.
 
@@ -126,13 +129,65 @@ Return a JSON array of acceptance criteria:
 )
 ```
 
-#### 2c. Merge Story Stubs with BDD Criteria
+### Step 3: Merge & Reconciliation
 
-After all parallel writer calls return for an epic, merge each story stub with its BDD output into the story stub format (see Output Schema below).
+#### 3a. Merge Story Stubs with BDD Criteria
 
-### Step 3: Epic Health Metrics
+After all writer agents return, merge each story stub with its BDD output into the story stub format (see Output Schema below).
 
-After processing all stories for an epic, compute and record health metrics:
+#### 3b. Cross-Epic Reconciliation Scan
+
+Dispatch a verifier agent (sonnet) to scan all story stubs across all epics for issues introduced by parallel decomposition:
+
+```
+Agent(
+  subagent_type="oh-my-claudecode:verifier",
+  model="sonnet",
+  prompt="""
+Scan all story stubs for cross-epic consistency issues.
+
+## All Story Stubs
+{all_story_stubs_across_all_epics}
+
+## Epic Plan
+Read from: SPRINT_DIR/epics.md
+
+## Requirements
+Read from: SPRINT_DIR/requirements.md
+
+Check for:
+1. **Duplicate stories**: Two stories across different epics covering the same FR or building the same feature
+2. **FR coverage gaps**: Any FR assigned to an epic that has no story implementing it
+3. **Cross-epic dependency conflicts**: Story in Epic N assumes an entity/pattern from Epic M that Epic M doesn't actually create
+4. **Scope boundary violations**: Story scope overlaps with another epic's declared scope
+5. **Entity naming conflicts**: Same concept named differently across epics
+
+## Output Format
+{
+  "status": "clean|warnings|issues",
+  "findings": [
+    {
+      "type": "duplicate|gap|dependency|overlap|naming",
+      "severity": "info|warning|error",
+      "description": "...",
+      "affected_stories": ["1.2", "3.1"],
+      "suggested_fix": "..."
+    }
+  ]
+}
+"""
+)
+```
+
+#### 3c. Auto-Fix Reconciliation Issues
+
+- **info**: Log only, no action
+- **warning**: Apply suggested fix if unambiguous (e.g., rename for consistency), log the change
+- **error**: Apply fix if possible. If not auto-fixable, flag to the orchestrator for the inter-phase summary.
+
+### Step 4: Epic Health Metrics
+
+After processing all stories for all epics, compute and record health metrics:
 
 | Metric | Check | Flag Condition |
 |--------|-------|---------------|
@@ -141,9 +196,9 @@ After processing all stories for an epic, compute and record health metrics:
 | FR coverage | Verify every FR assigned to this epic has at least one story | Flag any uncovered FRs |
 | Cross-epic dependencies | Scan story technical notes for references to future epic entities | Flag any detected forward deps |
 
-### Step 4: Update epics.md
+### Step 5: Update epics.md
 
-Append stories and health metrics directly to `current/epics.md` under each epic section.
+Append stories and health metrics directly to `SPRINT_DIR/epics.md` under each epic section.
 
 ---
 
@@ -186,7 +241,7 @@ Append stories and health metrics directly to `current/epics.md` under each epic
 
 ## State Updates
 
-After this phase completes, update `current/phase-state.json`:
+After this phase completes, update `SPRINT_DIR/phase-state.json`:
 - `current_phase`: `"story-enrichment"`
 - `stories_total`: total story count across all epics
 
@@ -195,11 +250,14 @@ After this phase completes, update `current/phase-state.json`:
 ## Agent Dispatch Reference
 
 ```
-# Per-epic planner call (sequential)
-Agent(subagent_type="oh-my-claudecode:planner", model="opus", prompt="...")
+# Step 1: All epics in parallel
+Agent(subagent_type="oh-my-claudecode:planner", model="opus", prompt="...")  # per-epic, parallel
 
-# Per-story writer calls (parallel within each epic)
-Agent(subagent_type="oh-my-claudecode:writer", model="sonnet", prompt="...")
+# Step 2: All stories across all epics in parallel (after all planners return)
+Agent(subagent_type="oh-my-claudecode:writer", model="sonnet", prompt="...")  # per-story, parallel
+
+# Step 3b: Cross-epic reconciliation (after all writers return)
+Agent(subagent_type="oh-my-claudecode:verifier", model="sonnet", prompt="...")
 ```
 
-Fire all writer calls for an epic's stories simultaneously. Wait for all writers to return before merging and moving to the next epic.
+Fire all planner calls simultaneously. After all return, fire all writer calls across all epics simultaneously. After all return, run reconciliation scan.

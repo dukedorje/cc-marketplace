@@ -28,21 +28,49 @@ Load from `current/` at phase start (context shedding — load artifacts only, n
 
 ## Process
 
-### Per-Story Enrichment (parallelized across all stories within same epic)
+### Step 0: Build Shared Context Manifest
 
-For each story stub in `current/epics.md`, execute the following steps. Fire all stories within the same epic simultaneously. Process epics in order (complete all stories of Epic 1 before starting Epic 2) so backward intelligence is available.
+Before dispatching any enrichment agents, build a **shared context manifest** from all story stubs across all epics. This replaces sequential backward intelligence with parallel-safe shared context.
 
-#### Step 1: Load Context
+Read all story stubs from `SPRINT_DIR/epics.md` and compile:
+
+```json
+{
+  "stories_by_epic": {
+    "1": [
+      { "id": "1.1", "title": "...", "frs": [...], "decisions": [...], "files_likely": "..." },
+      { "id": "1.2", "title": "...", "frs": [...], "decisions": [...], "files_likely": "..." }
+    ],
+    "2": [...]
+  },
+  "shared_entities": ["User", "Organization", "ApiClient"],
+  "shared_patterns": {
+    "auth": "Stories 1.1, 2.3, 3.2 touch authentication",
+    "database": "Stories 1.2, 1.3 define core schema"
+  },
+  "cross_epic_dependencies": [
+    { "from": "2.1", "depends_on": "1.2", "reason": "needs User entity" }
+  ]
+}
+```
+
+This manifest is injected into every enrichment agent's prompt so all stories — regardless of epic — have visibility into what sibling stories are building.
+
+### Step 1: Parallel Story Enrichment (fan-out across ALL epics)
+
+For each story stub in `SPRINT_DIR/epics.md`, execute the following steps. Fire **all stories across all epics simultaneously**. Each agent receives the shared context manifest instead of sequential backward intelligence.
+
+#### Step 1a: Load Context
 
 Collect the following inputs for this story:
-1. Story stub (user story + ACs + technical notes) from `current/epics.md`
-2. Full `current/architecture-decisions.md`
-3. Full `current/requirements.md`
-4. If `story_num > 1`: contents of all previously enriched story files in `current/stories/` — extract "Files Created", "Patterns Established", "Problems Encountered" from their `## Dev Agent Record` and `## Previous Story Intelligence` sections
+1. Story stub (user story + ACs + technical notes) from `SPRINT_DIR/epics.md`
+2. Full `SPRINT_DIR/architecture-decisions.md`
+3. Full `SPRINT_DIR/requirements.md`
+4. **Shared context manifest** (from Step 0) — all sibling stories, shared entities, cross-epic dependencies
 5. If sprint N>1: load stories from `sprint-{N-1}/stories/` that share FRs or architecture decisions with this story
-6. Load relevant sections of `current/discovery.md` — existing files, patterns, integration points
+6. Load relevant sections of `SPRINT_DIR/discovery.md` — existing files, patterns, integration points
 
-#### Step 2: Parallel Tech Research
+#### Step 1b: Parallel Tech Research
 
 Fire `document-specialist` (sonnet) in parallel with the executor call (do not wait for it before starting the executor):
 
@@ -80,7 +108,7 @@ Return a JSON object:
 )
 ```
 
-#### Step 3: Executor Story Enrichment
+#### Step 1d: Executor Story Enrichment
 
 Fire `executor` (sonnet) to generate the comprehensive story file:
 
@@ -100,10 +128,12 @@ Read from: SPRINT_DIR/architecture-decisions.md
 ## Requirements
 Read from: SPRINT_DIR/requirements.md
 
-## Previous Story Intelligence
-Files created by prior stories: {file_list_from_prior_stories}
-Patterns established: {patterns_from_prior_stories}
-Problems encountered: {problems_from_prior_stories}
+## Sibling Story Context (shared context manifest)
+All stories being planned in this sprint — use this to understand what other stories are building, avoid duplication, and reference shared entities correctly:
+{shared_context_manifest_json}
+
+Your story's cross-epic dependencies:
+{cross_epic_dependencies_for_this_story}
 
 ## Library Versions (from document-specialist research)
 {library_versions_json}
@@ -116,12 +146,17 @@ Problems encountered: {problems_from_prior_stories}
 
 Generate the story file using the schema below. Fill every section. If a section does not apply (e.g., codebase context for a new repo), write "N/A" — do not omit the section header.
 
+In the "Previous Story Intelligence" section, populate based on the shared context manifest:
+- Files Created by Prior Stories → list files that stories with LOWER IDs in YOUR epic will likely create (from the manifest's files_likely field)
+- Patterns Established → reference shared_patterns from the manifest
+- Problems Encountered → "N/A" (not yet executed)
+
 {story_file_schema}
 """
 )
 ```
 
-#### Step 4: LLM Optimization Pass
+#### Step 1e: LLM Optimization Pass
 
 After the executor returns, apply a token efficiency review before writing to disk. Either pass this back to the executor with a focused prompt, or apply inline:
 
@@ -148,7 +183,7 @@ Return the optimized story file in full.
 )
 ```
 
-#### Step 5: Adversarial Validation Checklist
+#### Step 1f: Adversarial Validation Checklist
 
 After the optimization pass, run this checklist against the story file. Apply corrections automatically for any failures — do not flag them to the user.
 
@@ -162,14 +197,64 @@ After the optimization pass, run this checklist against the story file. Apply co
 | No forward dependencies | Story does not reference entities or patterns from later-numbered stories |
 | FR traceability | Every FR in frontmatter has at least one AC that directly validates it |
 
-#### Step 6: Write Output
+#### Step 1g: Write Output
 
 Write the validated, optimized story file to:
 ```
-current/stories/{epic_num}-{story_num}-{slug}.md
+SPRINT_DIR/stories/{epic_num}-{story_num}-{slug}.md
 ```
 
 Where `{slug}` is a kebab-case version of the story title (e.g., `user-authentication`, `profile-setup`).
+
+### Step 2: Post-Enrichment Reconciliation
+
+After ALL stories across ALL epics are written, dispatch a verifier agent (sonnet) to scan the enriched story files for cross-epic consistency issues:
+
+```
+Agent(
+  subagent_type="oh-my-claudecode:verifier",
+  model="sonnet",
+  prompt="""
+Scan all enriched story files for cross-epic consistency issues introduced by parallel enrichment.
+
+## Story Files
+Read all files in: SPRINT_DIR/stories/
+
+## Architecture Decisions
+Read from: SPRINT_DIR/architecture-decisions.md
+
+Check for:
+1. **File ownership conflicts**: Multiple stories claiming to create or modify the same file
+2. **Interface contract mismatches**: Story A exports a function with signature X, Story B imports it expecting signature Y
+3. **Pattern divergence**: Stories in different epics using different patterns for the same concern (e.g., error handling, API response format)
+4. **Dependency ordering issues**: Story assumes a file/module exists that only gets created by a story in a later epic
+5. **Testing strategy conflicts**: Different test frameworks or patterns specified for the same module
+6. **Naming inconsistencies**: Same entity/concept named differently across stories
+
+## Output Format
+{
+  "status": "clean|warnings|issues",
+  "findings": [
+    {
+      "type": "file_conflict|interface_mismatch|pattern_divergence|dependency_order|test_conflict|naming",
+      "severity": "info|warning|error",
+      "description": "...",
+      "affected_stories": ["1.2", "3.1"],
+      "suggested_fix": "..."
+    }
+  ]
+}
+"""
+)
+```
+
+#### Auto-Fix
+
+- **info**: Log only
+- **warning**: Apply suggested fix if unambiguous (e.g., align naming), update affected story files
+- **error**: Apply fix if possible. If not auto-fixable, flag for the inter-phase summary. Common auto-fixes:
+  - File ownership conflicts → add explicit note to later story: "File X already created by Story N.M — modify, don't recreate"
+  - Dependency ordering → add cross-reference in the dependent story's Previous Story Intelligence section
 
 ---
 
@@ -267,7 +352,7 @@ As a [role], I want [action], so that [benefit].
 
 ## State Updates
 
-After all story files are written, update `current/phase-state.json`:
+After all story files are written and reconciliation is complete, update `SPRINT_DIR/phase-state.json`:
 - `current_phase`: `"validation"`
 - `stories_enriched`: total count of story files written
 
@@ -276,14 +361,15 @@ After all story files are written, update `current/phase-state.json`:
 ## Agent Dispatch Reference
 
 ```
-# Per-story executor call (parallel within each epic)
-Agent(subagent_type="oh-my-claudecode:executor", model="sonnet", prompt="...")
+# Step 0: Build shared context manifest (orchestrator, no agent dispatch)
 
-# Per-story document-specialist call (parallel with executor)
-Agent(subagent_type="oh-my-claudecode:document-specialist", model="sonnet", prompt="...")
+# Step 1: All stories across ALL epics (fully parallel fan-out)
+Agent(subagent_type="oh-my-claudecode:document-specialist", model="sonnet", prompt="...")  # per-story, parallel
+Agent(subagent_type="oh-my-claudecode:executor", model="sonnet", prompt="...")             # per-story, parallel
+Agent(subagent_type="oh-my-claudecode:executor", model="sonnet", prompt="...")             # optimization pass, sequential per story
 
-# LLM optimization pass (sequential after executor, same story)
-Agent(subagent_type="oh-my-claudecode:executor", model="sonnet", prompt="...")
+# Step 2: Post-enrichment reconciliation (after all stories complete)
+Agent(subagent_type="oh-my-claudecode:verifier", model="sonnet", prompt="...")
 ```
 
-Fire all stories within an epic simultaneously (executor + document-specialist pairs). Wait for an epic's stories to complete before loading their output as backward intelligence for the next epic.
+Fire all stories across all epics simultaneously (executor + document-specialist pairs). Each agent receives the shared context manifest for sibling awareness. After all complete, run reconciliation to catch cross-epic inconsistencies.

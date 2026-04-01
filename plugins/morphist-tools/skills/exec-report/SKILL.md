@@ -67,7 +67,7 @@ Dispatch a writer agent (haiku) to synthesize a 2-3 sentence changelog-style sum
 
 ### 2d. Cross-Story Reconciliation (quick scan)
 
-Since stories in an epic run in parallel, they can make conflicting choices. Dispatch a verifier agent (haiku) to do a fast consistency scan across the file lists from all completed stories. Check for:
+Since stories in an epic run in parallel, they can make conflicting choices. Dispatch a verifier agent (sonnet) to do a consistency scan across the file lists from all completed stories. Check for:
 
 - **Duplicate utilities**: Multiple stories creating similar helper functions
 - **Naming inconsistencies**: Same concept with different names (e.g., `ApiError` vs `HttpError`)
