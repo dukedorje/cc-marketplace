@@ -9,7 +9,7 @@ argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--auto] [--ste
 
 Coordinates a multi-phase planning workflow. Each phase is defined in its own file under `${CLAUDE_SKILL_DIR}/phases/`. This orchestrator handles argument parsing, initialization, phase routing, state management, and inter-phase pauses. Phase files are authoritative for agent prompts and dispatch logic.
 
-**OMC persistence**: For autonomous runs, invoke within OMC ralph (`ralph /sprint-plan --auto`) so the Stop hook handles continuation across phases without "continue" prompts. Sprint-plan itself does not implement a persistence loop — it delegates that to OMC when available.
+**OMC persistence**: Sprint-plan automatically activates ralph state on initialization (step 2c), so the OMC Stop hook handles continuation across phases without manual "continue" prompts. The ralph state is deactivated on completion. No explicit `ralph` wrapping is needed.
 
 ---
 
@@ -72,11 +72,25 @@ Parse `$ARGUMENTS` for:
 
 Set `steering_mode` to `GUIDED` if thorough, `AUTONOMOUS` if fast.
 
-### 2c. OMC State (optional)
+### 2c. OMC State & Auto-Continuation (optional)
 
 If `state_write` available:
 1. Register `{ mode: "sprint-plan", active: true, current_sprint: "sprint-{NNN}" }`. Skip if unavailable.
 2. Write session-scoped sprint binding: key `morphist.active_sprint`, value `sprint-{NNN}`. This allows other skills in the same session to auto-resolve to this sprint without relying on the `current` symlink.
+3. **Activate auto-continuation**: Write a ralph state file to `.omc/state/ralph-state.json` (or session-scoped `.omc/state/sessions/{sessionId}/ralph-state.json` if session ID is available):
+   ```json
+   {
+     "active": true,
+     "iteration": 1,
+     "max_iterations": 20,
+     "started_at": "{ISO 8601}",
+     "prompt": "/sprint-plan --continue",
+     "session_id": "{sessionId if available}",
+     "project_path": "{absolute working directory path}",
+     "source": "sprint-plan"
+   }
+   ```
+   This piggybacks on OMC's existing Stop hook to auto-continue if Claude stops mid-planning. The `source: "sprint-plan"` field distinguishes it from user-initiated ralph loops.
 
 ### 2d. Handle --continue
 
@@ -177,7 +191,9 @@ Use `state_write`/`state_read` with `mode="sprint-plan"` if available. Skip if n
 
 After each phase: report phase name, artifacts, decisions, next phase. Present Decision Steering elicitations BEFORE reporting phase complete.
 
-At completion: report sprint number, mode, epic/story counts, decision counts, validation status, readiness report path, next steps (`/sprint-exec`, `/refine`).
+At completion:
+1. **Deactivate auto-continuation**: Delete the ralph state file written in step 2c (or set `active: false`). This prevents the Stop hook from blocking after planning is done.
+2. Report sprint number, mode, epic/story counts, decision counts, validation status, readiness report path, next steps (`/sprint-exec`, `/refine`).
 
 ---
 
