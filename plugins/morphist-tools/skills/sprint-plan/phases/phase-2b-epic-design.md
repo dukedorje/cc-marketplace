@@ -180,9 +180,9 @@ Your role: PLANNER — design the epic structure and self-validate it.
 ## Inputs
 
 Read the following files:
-- SPRINT_DIR/requirements.md (Phase 1 output — all FRs, NFRs, constraints)
-- SPRINT_DIR/architecture-decisions.md (Phase 2A output — all architecture decisions)
-- SPRINT_DIR/discovery.md (Phase 0 output — project context)
+- SPEC_DIR/requirements.md (Phase 1 output — all FRs, NFRs, constraints)
+- SPEC_DIR/architecture-decisions.md (Phase 2A output — all architecture decisions)
+- SPEC_DIR/discovery.md (Phase 0 output — project context)
 
 ## Task
 
@@ -233,7 +233,7 @@ After drafting the epic structure, self-verify each item below. Flag any violati
 
 ## Output
 
-Write the complete epic structure to SPRINT_DIR/epics.md using the output schema from the phase instructions.
+Write the complete epic structure to SPEC_DIR/epics.md using the output schema from the phase instructions.
 
 Include:
 1. Requirements Inventory (all FRs, NFRs, architecture requirements)

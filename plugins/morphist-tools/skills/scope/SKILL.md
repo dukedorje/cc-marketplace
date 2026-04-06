@@ -15,15 +15,16 @@ Analyzes the full requirement surface and negotiates the sprint boundary with th
 
 ### Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
-Read `SPRINT_DIR/requirements.md`.
+Read `SPEC_DIR/requirements.md`.
 
 If not found: `No requirements found. Run /sprint-plan first to generate requirements, or /prd to start from scratch.`
 
@@ -37,7 +38,7 @@ If not found: `No requirements found. Run /sprint-plan first to generate require
 
 ## 3. Show Mode
 
-If `--show`: read and display `SPRINT_DIR/sprint-scope.md` if it exists. Show the IN/STRETCH/DEFER split. Stop.
+If `--show`: read and display `SPEC_DIR/sprint-scope.md` if it exists. Show the IN/STRETCH/DEFER split. Stop.
 
 ## 4. Execute Scoping
 
@@ -53,8 +54,8 @@ Read the phase instruction file at `${CLAUDE_SKILL_DIR}/../sprint-plan/phases/ph
 **Agent**: `analyst` (opus)
 
 **Inputs**:
-- `SPRINT_DIR/requirements.md` — all FRs from Phase 1
-- `SPRINT_DIR/discovery.md` — velocity data for sprint N>1
+- `SPEC_DIR/requirements.md` — all FRs from Phase 1
+- `SPEC_DIR/discovery.md` — velocity data for sprint N>1
 - `.omc/backlog.md` and `.omc/backlog-promoted.md` if they exist
 
 ## 5. Negotiation
@@ -71,11 +72,11 @@ This interaction IS the Decision Steering for sprint scope (CRITICAL significanc
 
 ## 6. Output
 
-Write `SPRINT_DIR/sprint-scope.md` with the negotiated boundary.
+Write `SPEC_DIR/sprint-scope.md` with the negotiated boundary.
 
 For deferred FR clusters: add items to `.omc/backlog.md` with `source: scoping:sprint-{N}` (graceful if backlog doesn't exist).
 
-Update `SPRINT_DIR/phase-state.json`: set `sprint_size` and `sprint_scope`.
+Update `STATE_DIR/phase-state.json`: set `sprint_size` and `sprint_scope`.
 
 ## 7. When Called from sprint-plan
 

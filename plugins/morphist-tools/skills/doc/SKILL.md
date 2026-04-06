@@ -69,13 +69,14 @@ Create any necessary subdirectories.
 
 ## 3. Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
 Skip this section if no `--from-story`, `--from-epic`, or `--from-decision` flag was provided — sprint context is optional for `/doc`.
 
@@ -86,7 +87,7 @@ Skip this section if no `--from-story`, `--from-epic`, or `--from-decision` flag
 ### 4a. If `--from-story=N.M`
 
 Read:
-- Story file: `SPRINT_DIR/stories/{story_file}`
+- Story file: `SPEC_DIR/stories/{story_file}`
 - Architecture decisions referenced by the story
 - Files listed in the Dev Agent Record (read each file for implementation details)
 - Any existing work log entries referencing this story
@@ -96,14 +97,14 @@ Read:
 Read:
 - All story files in the epic
 - Architecture decisions referenced by any story in the epic
-- Epic section from `SPRINT_DIR/epics.md`
-- Decision graph entries for this epic (if `SPRINT_DIR/decision-graph.md` exists)
+- Epic section from `SPEC_DIR/epics.md`
+- Decision graph entries for this epic (if `SPEC_DIR/decision-graph.md` exists)
 - Work log entries referencing this epic
 
 ### 4c. If `--from-decision=D-NNN`
 
 Read:
-- The decision from `SPRINT_DIR/architecture-decisions.md`
+- The decision from `SPEC_DIR/architecture-decisions.md`
 - Decision graph: which stories depend on this decision
 - Story files that reference this decision (Architecture Compliance sections)
 - Replan log entries for this decision (if any)
@@ -185,7 +186,7 @@ If the file already exists and `--update` was NOT specified:
 
 ### 7a. Log the Doc Creation
 
-If a sprint is active, append to the work log (`SPRINT_DIR/work-log.md`):
+If a sprint is active, append to the work log (`STATE_DIR/work-log.md`):
 
 ```markdown
 ---

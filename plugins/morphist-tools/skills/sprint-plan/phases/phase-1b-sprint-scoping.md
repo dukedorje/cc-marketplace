@@ -257,7 +257,7 @@ Wait for user input. If the user adjusts scope:
 
 ## Output
 
-Write to `SPRINT_DIR/sprint-scope.md`:
+Write to `SPEC_DIR/sprint-scope.md`:
 
 ```markdown
 ---

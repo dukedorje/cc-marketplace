@@ -98,7 +98,7 @@ The PRD is the input to `/sprint-plan`.
 
 ### Output
 
-All artifacts in `SPRINT_DIR/` (e.g. `.omc/sprint-plan/sprint-NNN/`, symlinked as `current/`):
+Spec artifacts in `SPEC_DIR` (e.g. `docs/sprints/NNN-slug/`):
 
 | File | Contents |
 |------|----------|
@@ -109,6 +109,14 @@ All artifacts in `SPRINT_DIR/` (e.g. `.omc/sprint-plan/sprint-NNN/`, symlinked a
 | `epics.md` | Epic structure with story summaries |
 | `stories/E{N}-S{M}.md` | Enriched story files ready for dev agents |
 | `readiness-report.md` | Final validation summary |
+
+Ephemeral state in `STATE_DIR` (e.g. `.omc/sprint-plan/sprint-NNN/`, symlinked as `current/`):
+
+| File | Contents |
+|------|----------|
+| `phase-state.json` | Phase tracking, epic/story statuses, execution log |
+| `work-log.md` | Work log annotations |
+| `reviews/` | Review and reconciliation reports |
 
 ---
 
@@ -242,7 +250,7 @@ Sprint-exec is a **thin dispatcher** — it reads story specs, builds a task man
 | `--epic=N` | Review specific epic |
 | `--all` | Review all completed epics |
 
-Output lands in `SPRINT_DIR/reviews/`.
+Output lands in `STATE_DIR/reviews/`.
 
 ---
 
@@ -424,7 +432,7 @@ Updates architecture decisions, propagates changes to affected story specs, and 
 /retro --force                     # Generate even if stories are incomplete
 ```
 
-Output: `SPRINT_DIR/retrospective.md`
+Output: `SPEC_DIR/retrospective.md`
 
 Automatically dispatches `/reconcile --all` for full-sprint code style reconciliation.
 
@@ -450,7 +458,7 @@ Automatically dispatches `/reconcile --all` for full-sprint code style reconcili
 | `--doc` | Also create permanent doc in `docs/` |
 | `--doc=PATH` | Create doc at specific `docs/PATH.md` |
 
-Log file: `SPRINT_DIR/work-log.md` (sprint) or `.omc/work-log.md` (project).
+Log file: `STATE_DIR/work-log.md` (sprint) or `.omc/work-log.md` (project).
 
 Cross-references entries in story files. Consumed by `/retro` for retrospective context.
 

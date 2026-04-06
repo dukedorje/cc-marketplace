@@ -34,13 +34,14 @@ No completed epics found. Run /sprint-exec first.
 
 ## 1a. Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
 ---
 
@@ -49,8 +50,8 @@ Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
 ### 2a. Read Sprint Artifacts
 
 Read:
-- `SPRINT_DIR/phase-state.json`
-- `SPRINT_DIR/architecture-decisions.md`
+- `STATE_DIR/phase-state.json`
+- `SPEC_DIR/architecture-decisions.md`
 
 ### 2b. Collect Stories to Verify
 

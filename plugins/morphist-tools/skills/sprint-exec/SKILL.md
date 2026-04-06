@@ -15,17 +15,18 @@ Reads validated story files, builds a task manifest, and dispatches to OMC execu
 
 ### 1a. Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
 ### 1b. Read Readiness Report
 
-Read `SPRINT_DIR/readiness-report.md`.
+Read `SPEC_DIR/readiness-report.md`.
 
 If not found: `No readiness report found. Run /sprint-plan first.`
 
@@ -33,7 +34,7 @@ Check `validation_status` — must be `pass` or `pass-with-warnings`. If `pass-w
 
 ### 1c. Read Phase State
 
-Read `SPRINT_DIR/phase-state.json`. Extract `sprint_number` and epic count from `SPRINT_DIR/epics.md`.
+Read `STATE_DIR/phase-state.json`. Extract `sprint_number` and epic count from `SPEC_DIR/epics.md`.
 
 ### 1d. Parse Arguments
 
@@ -96,15 +97,15 @@ If `--dry-run`: print execution plan showing each epic/story with status and dis
 
 ### 3a. Read Epic Ordering
 
-Read `SPRINT_DIR/epics.md` for the ordered list of epics and their stories.
+Read `SPEC_DIR/epics.md` for the ordered list of epics and their stories.
 
 ### 3b. Resolve Story Files
 
-Check for enriched story files at: `SPRINT_DIR/stories/{epic}-{story}-{slug}.md`
+Check for enriched story files at: `SPEC_DIR/stories/{epic}-{story}-{slug}.md`
 
 If enriched story files exist, read frontmatter to get `status`, `title`, `decisions`, `test_tier`, and AC count.
 
-If no enriched story files exist (Phase 4 was skipped — the default workflow), read story stubs from `SPRINT_DIR/epics.md` instead. Extract `test_tier`, `complexity`, `decisions`, and ACs from the stub format.
+If no enriched story files exist (Phase 4 was skipped — the default workflow), read story stubs from `SPEC_DIR/epics.md` instead. Extract `test_tier`, `complexity`, `decisions`, and ACs from the stub format.
 
 ### 3c. Filter by Scope
 
@@ -119,7 +120,7 @@ For each eligible story, build a task object:
   "story_id": "N.M",
   "epic": N,
   "title": "Story title",
-  "file_path": "SPRINT_DIR/stories/N-M-slug.md",
+  "file_path": "SPEC_DIR/stories/N-M-slug.md",
   "source": "enriched|stub",
   "ac_count": 5,
   "test_tier": "yolo|smoke|thorough",
@@ -171,7 +172,8 @@ Agent(
 You are implementing a story from the sprint plan.
 
 Working directory: {working_directory}
-Sprint directory: SPRINT_DIR/
+Spec directory: SPEC_DIR/
+State directory: STATE_DIR/
 Story file: {story_file_path}
 Story: {story_title} ({story_id})
 Acceptance criteria count: {ac_count}
@@ -189,7 +191,7 @@ Learnings from previous epics:
 
 Instructions:
 1. Read the story file at {story_file_path} — it contains the full specification and acceptance criteria.
-2. If no enriched story file exists at SPRINT_DIR/stories/, read the story stub from SPRINT_DIR/epics.md instead. Also read SPRINT_DIR/architecture-decisions.md for referenced decisions.
+2. If no enriched story file exists at SPEC_DIR/stories/, read the story stub from SPEC_DIR/epics.md instead. Also read SPEC_DIR/architecture-decisions.md for referenced decisions.
 3. Implement every requirement in the story.
 4. Follow the architecture decisions specified.
 5. Testing approach based on test_tier:

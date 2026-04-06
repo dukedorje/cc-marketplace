@@ -34,23 +34,24 @@ If no flag is provided, reconcile the most recently completed epic (same logic a
 
 ### 2a. Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `SPRINT_DIR/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
 ### 2b. Sprint Artifacts
 
-Read from `SPRINT_DIR/`:
+Read from `SPEC_DIR/`:
 - `architecture-decisions.md` — decisions that may prescribe conventions
 - `discovery.md` — existing codebase patterns (if any) that set the baseline
 
 ### 2c. Determine Scope
 
-Based on flags, collect the relevant story files from `SPRINT_DIR/stories/`. Only include stories with `status: done`.
+Based on flags, collect the relevant story files from `SPEC_DIR/stories/`. Only include stories with `status: done`.
 
 For each story, read the Dev Agent Record to get the list of files created/modified.
 
@@ -76,8 +77,8 @@ You are performing code style reconciliation across work produced by parallel de
 
 ## Context
 
-Architecture decisions: SPRINT_DIR/architecture-decisions.md
-Existing codebase patterns: SPRINT_DIR/discovery.md
+Architecture decisions: SPEC_DIR/architecture-decisions.md
+Existing codebase patterns: SPEC_DIR/discovery.md
 
 ## Files to Analyze
 
@@ -244,7 +245,7 @@ or make any other changes. This is a cosmetic reconciliation pass.
 
 ## 5. Write Report
 
-Write the reconciliation report to `SPRINT_DIR/reviews/reconciliation-{scope}.md` where `{scope}` is `epic-{N}` or `full-sprint`.
+Write the reconciliation report to `STATE_DIR/reviews/reconciliation-{scope}.md` where `{scope}` is `epic-{N}` or `full-sprint`.
 
 ```markdown
 # Code Reconciliation: {scope}
@@ -288,7 +289,7 @@ Write the reconciliation report to `SPRINT_DIR/reviews/reconciliation-{scope}.md
     User-resolved:     {count}
     Accepted as-is:    {count}
 
-  Report: SPRINT_DIR/reviews/reconciliation-{scope}.md
+  Report: STATE_DIR/reviews/reconciliation-{scope}.md
 ═══════════════════════════════════════════════════
 ```
 
@@ -300,7 +301,7 @@ When `--decisions` is specified, reconcile operates in a different mode: instead
 
 ### 7a. Read Decision Graph
 
-Read `SPRINT_DIR/decision-graph.md` to identify which stories depend on which ADRs.
+Read `SPEC_DIR/decision-graph.md` to identify which stories depend on which ADRs.
 
 If the graph doesn't exist, halt:
 ```

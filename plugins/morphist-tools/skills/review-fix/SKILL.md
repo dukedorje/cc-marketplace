@@ -15,13 +15,14 @@ Takes a review artifact (from `/sprint-review`, `/reconcile`, or any review file
 
 ### Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `SPRINT_DIR/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
 ### Argument Parsing
 
@@ -29,13 +30,13 @@ Parse `$ARGUMENTS`:
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `review-file-path` | No | Path to a review file. If omitted, looks for the most recent file in `SPRINT_DIR/reviews/` |
+| `review-file-path` | No | Path to a review file. If omitted, looks for the most recent file in `STATE_DIR/reviews/` |
 | `--auto` | No | Auto-fix all validated issues without elicitation (skip only false positives) |
 | `--tdd` | No | Write a failing test reproducing each confirmed finding before applying the fix. Tests serve as regression guards. |
 | `--dry-run` | No | Validate findings and report what would be fixed, but make no changes |
 
 If no path is provided:
-1. List files in `SPRINT_DIR/reviews/`
+1. List files in `STATE_DIR/reviews/`
 2. If multiple reviews exist, present them to the user:
    ```
    Multiple review files found:
@@ -356,7 +357,7 @@ After fixes are applied, run the TDD tests again:
 
 ## 7. Write Report
 
-Write the review-fix report to `SPRINT_DIR/reviews/{source}-fixes.md` (e.g., `epic-2-review-fixes.md`).
+Write the review-fix report to `STATE_DIR/reviews/{source}-fixes.md` (e.g., `epic-2-review-fixes.md`).
 
 ```markdown
 # Review Fix Report: {source_review_file}
@@ -423,7 +424,7 @@ Write the review-fix report to `SPRINT_DIR/reviews/{source}-fixes.md` (e.g., `ep
     Run: {test_runner_command} {test_files}
   {/if}
 
-  Report: SPRINT_DIR/reviews/{source}-fixes.md
+  Report: STATE_DIR/reviews/{source}-fixes.md
 
   {if deferred_count > 0}
   Note: {deferred_count} complex findings deferred.

@@ -197,7 +197,7 @@ analyst_result = Agent(
 You are the Analyst agent running Phase 1: Requirements Expansion.
 
 Read the following inputs:
-- Discovery output: SPRINT_DIR/discovery.md
+- Discovery output: SPEC_DIR/discovery.md
 - Product idea: {user_product_idea}
 
 Input quality detected in Phase 0: {input_quality}
@@ -220,7 +220,7 @@ architect_result = Agent(
 You are the Architect agent running Phase 1: Requirements Expansion.
 
 Read the following inputs:
-- Discovery output: SPRINT_DIR/discovery.md
+- Discovery output: SPEC_DIR/discovery.md
 - Product idea: {user_product_idea}
 
 Your task:
@@ -243,7 +243,7 @@ if not new_repo:
 You are the Explore agent running Phase 1: Requirements Expansion (codebase scan).
 
 Read the following inputs:
-- Discovery output: SPRINT_DIR/discovery.md
+- Discovery output: SPEC_DIR/discovery.md
 - Existing codebase inventory in the discovery output
 
 Your task:

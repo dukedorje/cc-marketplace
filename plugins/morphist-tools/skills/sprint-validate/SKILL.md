@@ -17,13 +17,14 @@ This is the full validation gate — for a quick smoke test of executed stories,
 
 ### Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
 This skill can run at any point after story enrichment (Phase 4). It does not require `current_phase` to be `"validation"` — use `--force` to run even if stories are incomplete.
 
@@ -48,7 +49,7 @@ Both agents are dispatched in parallel. See the phase file for full agent prompt
 
 ## 4. Output
 
-Write `SPRINT_DIR/readiness-report.md` with:
+Write `STATE_DIR/readiness-report.md` with:
 - Overall status: READY / READY WITH WARNINGS / NOT READY
 - FR coverage matrix
 - Architecture compliance summary
@@ -57,7 +58,7 @@ Write `SPRINT_DIR/readiness-report.md` with:
 - Decision summary
 - Sprint statistics
 
-Update `SPRINT_DIR/phase-state.json`: set `validation_status` to `"pass"` or `"fail"`.
+Update `STATE_DIR/phase-state.json`: set `validation_status` to `"pass"` or `"fail"`.
 
 Present the readiness report to the user.
 

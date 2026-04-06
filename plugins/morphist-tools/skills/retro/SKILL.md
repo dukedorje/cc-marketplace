@@ -15,15 +15,16 @@ You are the `retro` skill for the sprint-plan plugin. You analyze sprint executi
 
 ### Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `SPRINT_DIR/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
-Check `execution_status` in `SPRINT_DIR/phase-state.json`.
+Check `execution_status` in `STATE_DIR/phase-state.json`.
 
 If `execution_status` is NOT `"complete"`:
 - If `--force` is NOT in `$ARGUMENTS`, halt:
@@ -44,13 +45,13 @@ If `execution_status` is NOT `"complete"`:
 
 Read the following files before dispatching analysis agents:
 
-- `SPRINT_DIR/phase-state.json` — sprint number, execution log
-- `SPRINT_DIR/discovery.md` — sprint start date (use `created` frontmatter field as git log date anchor), tech stack, project type
-- `SPRINT_DIR/requirements.md` — original requirements and scope
-- `SPRINT_DIR/architecture-decisions.md` — all architecture decisions
-- `SPRINT_DIR/epics.md` — epic and story structure
+- `STATE_DIR/phase-state.json` — sprint number, execution log
+- `SPEC_DIR/discovery.md` — sprint start date (use `created` frontmatter field as git log date anchor), tech stack, project type
+- `SPEC_DIR/requirements.md` — original requirements and scope
+- `SPEC_DIR/architecture-decisions.md` — all architecture decisions
+- `SPEC_DIR/epics.md` — epic and story structure
 
-List all story files in `SPRINT_DIR/stories/` to pass to analysis agents.
+List all story files in `SPEC_DIR/stories/` to pass to analysis agents.
 
 ---
 
@@ -87,7 +88,7 @@ Tasks:
 ```
 You are analyzing sprint story execution results.
 
-Story files directory: SPRINT_DIR/stories/
+Story files directory: SPEC_DIR/stories/
 Story file list: {list of all story file paths}
 
 Tasks:
@@ -124,14 +125,14 @@ Tasks:
 
 ### Agent 3: Architecture Decision Review (critic, opus)
 
-Read `SPRINT_DIR/decision-graph.md` if it exists and pass it to the agent. The graph shows which stories depend on which decisions, enabling precise impact analysis.
+Read `SPEC_DIR/decision-graph.md` if it exists and pass it to the agent. The graph shows which stories depend on which decisions, enabling precise impact analysis.
 
-Also read `SPRINT_DIR/replan-log.md` if it exists — replan events are key data for the decision review.
+Also read `SPEC_DIR/replan-log.md` if it exists — replan events are key data for the decision review.
 
 ```
 You are reviewing how well architecture decisions held up during sprint execution.
 
-Architecture decisions file: SPRINT_DIR/architecture-decisions.md
+Architecture decisions file: SPEC_DIR/architecture-decisions.md
 Story files: {list of all story file paths}
 {if decision_graph_exists}Decision graph: {decision_graph_content}{/if}
 {if replan_log_exists}Replan log: {replan_log_content}{/if}
@@ -172,7 +173,7 @@ Before generating the retrospective, run a full-sprint code style reconciliation
 
 Equivalent to dispatching `/reconcile --all`. This runs in **GUIDED mode** — contentious choices (high severity) are presented to the user as elicitations, similar to Decision Steering in sprint-plan.
 
-After reconciliation completes, read the report at `SPRINT_DIR/reviews/reconciliation-full-sprint.md` and pass it as additional input to the retrospective writer (section 5). The findings should appear in the retrospective's "Patterns Discovered" section.
+After reconciliation completes, read the report at `STATE_DIR/reviews/reconciliation-full-sprint.md` and pass it as additional input to the retrospective writer (section 5). The findings should appear in the retrospective's "Patterns Discovered" section.
 
 If no inconsistencies are found, note "Code reconciliation: no cross-epic style issues detected" and proceed.
 
@@ -207,7 +208,7 @@ Sprint start: {created_date}
 
 ## Your Task
 
-Write a comprehensive sprint retrospective to `SPRINT_DIR/retrospective.md`.
+Write a comprehensive sprint retrospective to `SPEC_DIR/retrospective.md`.
 
 The document must have YAML frontmatter:
 ---
@@ -310,7 +311,7 @@ Ordered list of debt items with the recommended sprint to address each:
 ...
 ```
 
-Write the completed retrospective to `SPRINT_DIR/retrospective.md`.
+Write the completed retrospective to `SPEC_DIR/retrospective.md`.
 
 ---
 
@@ -331,7 +332,7 @@ Print the completion summary:
 ```
 --- Sprint {sprint_number} Retrospective Complete ---
 
-Retrospective written to: SPRINT_DIR/retrospective.md
+Retrospective written to: SPEC_DIR/retrospective.md
 
 Highlights:
   Stories done:    {count}/{total} ({percentage}%)
@@ -352,7 +353,7 @@ Run /sprint-plan to start the next sprint — it will automatically consume this
 
 ## 8. Cross-Sprint Intelligence Note
 
-The retrospective at `SPRINT_DIR/retrospective.md` is automatically consumed by Phase 0 of the next sprint. When the next `/sprint-plan` run completes Phase 0 (discovery), it reads `sprint-{N-1}/retrospective.md` (after the current directory is archived) and uses it to:
+The retrospective at `SPEC_DIR/retrospective.md` is automatically consumed by Phase 0 of the next sprint. When the next `/sprint-plan` run completes Phase 0 (discovery), it reads the previous sprint's `retrospective.md` from its spec directory and uses it to:
 - Pre-populate the requirements phase with unfinished work
 - Carry forward architecture evolution proposals
 - Inform velocity estimates for story sizing
@@ -364,4 +365,4 @@ No additional wiring is needed.
 
 ## 9. RAL Support
 
-The `/refine retro` command targets this artifact at `SPRINT_DIR/retrospective.md`. The `retro` phase is terminal — refining it does NOT mark any downstream phases stale.
+The `/refine retro` command targets this artifact at `SPEC_DIR/retrospective.md`. The `retro` phase is terminal — refining it does NOT mark any downstream phases stale.

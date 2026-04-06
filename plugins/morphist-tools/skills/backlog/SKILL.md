@@ -153,7 +153,7 @@ Scan story files for implicit follow-up indicators that agents or humans left be
 - `--scan --epic=N`: scan all stories in an epic
 - `--scan` (no scope): scan all stories in the current sprint
 
-Read `SPRINT_DIR/phase-state.json` to confirm a sprint exists (use sprint resolution: `--sprint` arg > `morphist.active_sprint` state > `current` symlink).
+Read `STATE_DIR/phase-state.json` to confirm a sprint exists (use sprint resolution: `--sprint` arg > `morphist.active_sprint` state > `current` symlink). Set `SPEC_DIR` from the `spec_dir` field in `phase-state.json`.
 
 ### 4b. Scan Patterns
 
@@ -242,7 +242,7 @@ Extract actionable items from the latest sprint retrospective.
 
 ### 5a. Find Retrospective
 
-Read `SPRINT_DIR/retrospective.md`. If not found, check the most recent `sprint-NNN/retrospective.md`.
+Read `SPEC_DIR/retrospective.md`. If not found, check the most recent sprint's spec directory for `retrospective.md`.
 
 If no retrospective found:
 ```
@@ -275,7 +275,7 @@ Tag all imported items with `source: retro:sprint-{N}`.
 ### 6a. Find Post-Mortems
 
 - `--from-post-mortem=N.M`: read that story's Post-Mortem section
-- `--from-post-mortem` (no scope): find all stories with `post_mortem: true` in frontmatter, plus all files in `SPRINT_DIR/post-mortems/`
+- `--from-post-mortem` (no scope): find all stories with `post_mortem: true` in frontmatter, plus all files in `STATE_DIR/post-mortems/`
 
 ### 6b. Extract Items
 

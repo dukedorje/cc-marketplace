@@ -31,23 +31,24 @@ At least one of `--story`, `--epic`, `--decision`, or `--reason` must be provide
 
 ### 2a. Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `SPRINT_DIR/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
 ### 2b. Read Sprint Artifacts
 
 Read the following files:
-- `SPRINT_DIR/architecture-decisions.md`
-- `SPRINT_DIR/epics.md`
-- `SPRINT_DIR/requirements.md`
+- `SPEC_DIR/architecture-decisions.md`
+- `SPEC_DIR/epics.md`
+- `SPEC_DIR/requirements.md`
 
 If `--story=N.M` is specified:
-- Read the story file from `SPRINT_DIR/stories/`
+- Read the story file from `SPEC_DIR/stories/`
 - Extract `blocker_type`, `blocker_detail`, and `Completion Notes` from the Dev Agent Record
 - Extract the `decisions` list from story frontmatter (architecture decisions this story depends on)
 
@@ -306,7 +307,7 @@ If the graph file does not exist, skip this step — the graph will be built on 
 
 ## 7. Write Replan Log
 
-Write the replan record to `SPRINT_DIR/replan-log.md` (append if file exists):
+Write the replan record to `SPEC_DIR/replan-log.md` (append if file exists):
 
 ```markdown
 ## Replan: {date}

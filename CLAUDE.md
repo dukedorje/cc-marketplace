@@ -76,17 +76,30 @@ Morphist-tools depends on OMC for execution infrastructure. The integration boun
 - **OMC owns**: Agent dispatch, parallelism, persistence loops, model routing, verification execution — the *how*
 - **Integration point**: Sprint-exec translates story specs into task definitions that OMC's execution primitives (executor, team, ultrapilot) can process
 
+## Sprint Artifact Layout
+
+Sprint planning produces artifacts in two locations:
+
+- **`SPEC_DIR`** = `docs/sprints/{NNN}-{slug}/` — committed specs (requirements, architecture decisions, epics, stories, discovery, retrospective). These represent intent and are version-controlled.
+- **`STATE_DIR`** = `.omc/sprint-plan/sprint-{NNN}/` — ephemeral state (phase-state.json, work-log, reviews). Gitignored.
+
+`STATE_DIR/phase-state.json` contains a `spec_dir` field that bridges state → specs. The sprint resolution protocol (in `templates/sprint-resolution.md`) resolves `STATE_DIR` first, then reads `spec_dir` to find `SPEC_DIR`.
+
+PRDs save to `docs/prd-{slug}.md`. Project-level architecture lives in `docs/architecture.md` and `docs/decisions/`.
+
 ## Conventions
 
 - Skills dispatch plugin agents via `subagent_type="morphist-tools:<agent-name>"`
 - Agent .md files use YAML frontmatter with `name`, `description`, `model`, and optional `disallowedTools`
 - Skill SKILL.md files use YAML frontmatter with `name`, `description`, and optional `user-invocable`, `argument-hint`, `model`
+- Skills use `SPEC_DIR` for committed spec artifacts and `STATE_DIR` for ephemeral operational state — never `SPRINT_DIR`
 - OMC agent types (e.g., `oh-my-claudecode:executor`) are acceptable dependencies. Make OMC infrastructure calls (state_write, etc.) graceful — skip if unavailable.
 
 ## Skills Reference
 
 | Skill | Description |
 |-------|-------------|
+| `vision` | Strategic product vision — create, evolve, align product dimensions |
 | `sprint-plan` | Multi-phase sprint planning workflow |
 | `prd` | Interactive PRD workshop |
 | `sprint-exec` | Execute validated sprint stories (thin dispatcher) |

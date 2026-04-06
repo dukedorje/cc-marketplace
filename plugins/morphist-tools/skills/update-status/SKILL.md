@@ -15,15 +15,16 @@ Manually view and update epic and story statuses in sprint planning artifacts. U
 
 ### 1a. Locate Sprint Artifacts
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
-Read `SPRINT_DIR/epics.md` to get the epic list.
+Read `SPEC_DIR/epics.md` to get the epic list.
 
 ### 1b. Parse Arguments
 
@@ -67,7 +68,7 @@ Read `phase-state.json` and extract:
 - `stale_phases` (if any)
 - `refine_passes` (if any)
 
-List artifacts in `SPRINT_DIR/` to determine what exists:
+List artifacts in `SPEC_DIR/` to determine what exists:
 
 ```
 ═══════════════════════════════════════════════════
@@ -120,7 +121,7 @@ If no epics exist yet (phase is before `epic-design`), display only the sprint o
 
 ### 2b. Collect Story Statuses
 
-Use Glob to find all story files in `SPRINT_DIR/stories/`.
+Use Glob to find all story files in `SPEC_DIR/stories/`.
 
 For each story file, read frontmatter to extract:
 - `status` (ready-for-dev, in-progress, done, failed, blocked)
@@ -135,7 +136,7 @@ Also scan `epics.md` for any `Status:` lines under epic headings.
 
 ### 2c. Load Decision Graph
 
-Read `SPRINT_DIR/decision-graph.md` if it exists. For each epic, extract the ADRs that affect its stories (any ADR whose story list includes a story in that epic).
+Read `SPEC_DIR/decision-graph.md` if it exists. For each epic, extract the ADRs that affect its stories (any ADR whose story list includes a story in that epic).
 
 ### 2d. Display Status Dashboard
 
@@ -186,7 +187,7 @@ If any epic has stories that are all `done` but the epic itself isn't marked `do
 
 ## 3. Update Story Status (`--story=N.M --status=VALUE`)
 
-1. Resolve the story file path: `SPRINT_DIR/stories/{N}-{M}-*.md`
+1. Resolve the story file path: `SPEC_DIR/stories/{N}-{M}-*.md`
    - Use Glob to find the matching file
    - If no match found, halt: `Story {N.M} not found in current sprint.`
 2. Read the story file

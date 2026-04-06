@@ -45,16 +45,19 @@ Parse `$ARGUMENTS` for:
 ### 2a. New Sprint (skip if `--continue` or `--restart-from`)
 
 1. Determine sprint number: find highest `sprint-NNN/` in `.omc/sprint-plan/`, increment (or start at `sprint-001`).
-2. Create directories: `.omc/sprint-plan/sprint-{NNN}/stories` and `.omc/sprint-plan/decisions`.
-3. Update symlink: `rm -f .omc/sprint-plan/current && ln -s sprint-{NNN} .omc/sprint-plan/current`.
-4. Write `.omc/sprint-plan/AGENTS.md` — static pointer: "Sprint artifacts in `.omc/sprint-plan/current/`".
-5. Set `SPRINT_DIR` = `.omc/sprint-plan/sprint-{NNN}/`.
+2. **Derive sprint slug**: From the product input, generate a short kebab-case slug (e.g., `auth-overhaul`, `api-pagination`). If no input yet, use `planning` as a placeholder (can be renamed later). Combine: `{NNN}-{slug}` (e.g., `001-auth-overhaul`).
+3. Create directories:
+   - `STATE_DIR` = `.omc/sprint-plan/sprint-{NNN}/` — operational state (gitignored)
+   - `SPEC_DIR` = `docs/sprints/{NNN}-{slug}/stories/` (creates stories/ and parent)
+4. Update symlink: `rm -f .omc/sprint-plan/current && ln -s sprint-{NNN} .omc/sprint-plan/current`.
+5. Write `.omc/sprint-plan/AGENTS.md` — static pointer: "Sprint specs in `docs/sprints/{NNN}-{slug}/`. Sprint state in `.omc/sprint-plan/current/`".
 
 ### 2b. Initialize phase-state.json
 
 ```json
 {
   "sprint": "sprint-{NNN}",
+  "spec_dir": "docs/sprints/{NNN}-{slug}/",
   "mode": "default|thorough|fast",
   "active": true,
   "current_phase": "discovery",
@@ -98,7 +101,7 @@ If `state_write` available:
 ### 2d. Handle --continue
 
 1. If `--sprint=<id>` provided, use `.omc/sprint-plan/<id>/`. Otherwise find most recent `sprint-NNN/`.
-2. Read `phase-state.json`. Set `SPRINT_DIR` = `.omc/sprint-plan/<resolved>/`.
+2. Read `phase-state.json`. Set `STATE_DIR` = `.omc/sprint-plan/<resolved>/`. Set `SPEC_DIR` from `phase-state.json`'s `spec_dir` field.
 3. Without phase arg: resume from next phase after `current_phase`.
 4. With phase arg (`--continue=<phase>`): verify artifact exists, resume from next phase.
 5. Update symlink and `current_phase`. Register in OMC session state (step 2c). Report: "Resuming sprint {NNN} from {phase}."
@@ -106,7 +109,7 @@ If `state_write` available:
 ### 2e. Handle --restart-from
 
 1. If `--sprint=<id>` provided, use `.omc/sprint-plan/<id>/`. Otherwise find most recent `sprint-NNN/`.
-2. Read `phase-state.json`. Set `SPRINT_DIR` = `.omc/sprint-plan/<resolved>/`.
+2. Read `phase-state.json`. Set `STATE_DIR` = `.omc/sprint-plan/<resolved>/`. Set `SPEC_DIR` from `phase-state.json`'s `spec_dir` field.
 3. Mark specified phase + all downstream as stale.
 4. Update symlink and `current_phase`. Register in OMC session state (step 2c). Report: "Restarting from {phase}. Downstream marked stale."
 
@@ -117,9 +120,9 @@ If `state_write` available:
 Execute phases sequentially. For each phase:
 1. Read phase instruction file from `${CLAUDE_SKILL_DIR}/phases/`.
 2. Load previous phase's output artifact (context shedding — read from disk, not memory).
-3. Dispatch agent(s) per the phase file. Include in the agent prompt: **"For this execution, `SPRINT_DIR` = `{resolved path}`."** Phase files use `SPRINT_DIR` as the artifact path prefix.
-4. Write output to the correct path under `SPRINT_DIR/`.
-5. Update `current_phase` and metrics in `SPRINT_DIR/phase-state.json`.
+3. Dispatch agent(s) per the phase file. Include in the agent prompt: **"For this execution, `SPEC_DIR` = `{spec path}` and `STATE_DIR` = `{state path}`."** Phase files use `SPEC_DIR` for committed spec artifacts and `STATE_DIR` for operational state.
+4. Write spec outputs (requirements, architecture-decisions, epics, stories, discovery) to `SPEC_DIR/`. Write state (phase-state, logs) to `STATE_DIR/`.
+5. Update `current_phase` and metrics in `STATE_DIR/phase-state.json`.
 6. Run Decision Steering if active for this phase.
 7. Inter-phase summary & pause (if applicable).
 

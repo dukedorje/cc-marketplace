@@ -32,7 +32,7 @@ Load from `current/` at phase start (context shedding — load artifacts only, n
 
 Before dispatching any enrichment agents, build a **shared context manifest** from all story stubs across all epics. This replaces sequential backward intelligence with parallel-safe shared context.
 
-Read all story stubs from `SPRINT_DIR/epics.md` and compile:
+Read all story stubs from `SPEC_DIR/epics.md` and compile:
 
 ```json
 {
@@ -58,17 +58,17 @@ This manifest is injected into every enrichment agent's prompt so all stories �
 
 ### Step 1: Parallel Story Enrichment (fan-out across ALL epics)
 
-For each story stub in `SPRINT_DIR/epics.md`, execute the following steps. Fire **all stories across all epics simultaneously**. Each agent receives the shared context manifest instead of sequential backward intelligence.
+For each story stub in `SPEC_DIR/epics.md`, execute the following steps. Fire **all stories across all epics simultaneously**. Each agent receives the shared context manifest instead of sequential backward intelligence.
 
 #### Step 1a: Load Context
 
 Collect the following inputs for this story:
-1. Story stub (user story + ACs + technical notes) from `SPRINT_DIR/epics.md`
-2. Full `SPRINT_DIR/architecture-decisions.md`
-3. Full `SPRINT_DIR/requirements.md`
+1. Story stub (user story + ACs + technical notes) from `SPEC_DIR/epics.md`
+2. Full `SPEC_DIR/architecture-decisions.md`
+3. Full `SPEC_DIR/requirements.md`
 4. **Shared context manifest** (from Step 0) — all sibling stories, shared entities, cross-epic dependencies
 5. If sprint N>1: load stories from `sprint-{N-1}/stories/` that share FRs or architecture decisions with this story
-6. Load relevant sections of `SPRINT_DIR/discovery.md` — existing files, patterns, integration points
+6. Load relevant sections of `SPEC_DIR/discovery.md` — existing files, patterns, integration points
 
 #### Step 1b: Parallel Tech Research
 
@@ -87,7 +87,7 @@ Architecture Decisions: {decisions}
 Technical Notes from story stub: {technical_notes}
 
 ## Architecture Decisions (for tech stack context)
-Read from: SPRINT_DIR/architecture-decisions.md
+Read from: SPEC_DIR/architecture-decisions.md
 
 For each referenced library or framework:
 1. Latest stable version as of today
@@ -123,10 +123,10 @@ Generate a comprehensive implementation guide for this story. Your output will b
 {story_stub_content_from_epics_md}
 
 ## Architecture Decisions
-Read from: SPRINT_DIR/architecture-decisions.md
+Read from: SPEC_DIR/architecture-decisions.md
 
 ## Requirements
-Read from: SPRINT_DIR/requirements.md
+Read from: SPEC_DIR/requirements.md
 
 ## Sibling Story Context (shared context manifest)
 All stories being planned in this sprint — use this to understand what other stories are building, avoid duplication, and reference shared entities correctly:
@@ -201,7 +201,7 @@ After the optimization pass, run this checklist against the story file. Apply co
 
 Write the validated, optimized story file to:
 ```
-SPRINT_DIR/stories/{epic_num}-{story_num}-{slug}.md
+SPEC_DIR/stories/{epic_num}-{story_num}-{slug}.md
 ```
 
 Where `{slug}` is a kebab-case version of the story title (e.g., `user-authentication`, `profile-setup`).
@@ -218,10 +218,10 @@ Agent(
 Scan all enriched story files for cross-epic consistency issues introduced by parallel enrichment.
 
 ## Story Files
-Read all files in: SPRINT_DIR/stories/
+Read all files in: SPEC_DIR/stories/
 
 ## Architecture Decisions
-Read from: SPRINT_DIR/architecture-decisions.md
+Read from: SPEC_DIR/architecture-decisions.md
 
 Check for:
 1. **File ownership conflicts**: Multiple stories claiming to create or modify the same file
@@ -352,7 +352,7 @@ As a [role], I want [action], so that [benefit].
 
 ## State Updates
 
-After all story files are written and reconciliation is complete, update `SPRINT_DIR/phase-state.json`:
+After all story files are written and reconciliation is complete, update `STATE_DIR/phase-state.json`:
 - `current_phase`: `"validation"`
 - `stories_enriched`: total count of story files written
 

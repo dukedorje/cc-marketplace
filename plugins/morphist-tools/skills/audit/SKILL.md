@@ -40,22 +40,23 @@ No scope specified. Audit all done stories in the current sprint? (y/n)
 
 ### 2a. Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
 ### 2b. Read Sprint Artifacts
 
 Read:
-- `SPRINT_DIR/architecture-decisions.md`
-- `SPRINT_DIR/epics.md`
-- `SPRINT_DIR/requirements.md`
-- `SPRINT_DIR/decision-graph.md` (if exists — used to check if dependent ADRs were revised since story was implemented)
-- Any replan log: `SPRINT_DIR/replan-log.md` (if exists)
+- `SPEC_DIR/architecture-decisions.md`
+- `SPEC_DIR/epics.md`
+- `SPEC_DIR/requirements.md`
+- `SPEC_DIR/decision-graph.md` (if exists — used to check if dependent ADRs were revised since story was implemented)
+- Any replan log: `SPEC_DIR/replan-log.md` (if exists)
 
 ### 2c. Collect Stories to Audit
 
@@ -421,7 +422,7 @@ For stories that need rework:
 
 ### 6c. Update Execution Log
 
-Append to `execution_log` in `SPRINT_DIR/phase-state.json`:
+Append to `execution_log` in `STATE_DIR/phase-state.json`:
 
 ```json
 {
@@ -441,14 +442,14 @@ Append to `execution_log` in `SPRINT_DIR/phase-state.json`:
 
 For each epic containing audited stories:
 - Recalculate epic status from updated story statuses
-- Update `epic_status` in `SPRINT_DIR/phase-state.json`
-- Update `Status:` in `SPRINT_DIR/epics.md`
+- Update `epic_status` in `STATE_DIR/phase-state.json`
+- Update `Status:` in `SPEC_DIR/epics.md`
 
 ---
 
 ## 7. Write Audit Summary
 
-Write to `SPRINT_DIR/audit-report.md` (append if exists):
+Write to `STATE_DIR/audit-report.md` (append if exists):
 
 ```markdown
 ## Audit: {date}
@@ -503,7 +504,7 @@ Write to `SPRINT_DIR/audit-report.md` (append if exists):
     {if tdd}✓ TDD Tests (failing tests as validation gate){/if}
     ✓ Status reset to ready-for-dev
 
-  Audit report: SPRINT_DIR/audit-report.md
+  Audit report: STATE_DIR/audit-report.md
 
   Re-run affected stories:
     {list /sprint-exec --story=N.M commands}

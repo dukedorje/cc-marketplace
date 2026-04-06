@@ -24,7 +24,7 @@ Parse `$ARGUMENTS`:
 | `--epic=N` | most recent completed | Review a specific epic |
 | `--all` | off | Review all completed epics |
 
-If no flag is provided, determine the most recently completed epic by reading story files in `SPRINT_DIR/stories/` and finding the highest epic number where at least one story has `status: done`.
+If no flag is provided, determine the most recently completed epic by reading story files in `SPEC_DIR/stories/` and finding the highest epic number where at least one story has `status: done`.
 
 ---
 
@@ -32,17 +32,18 @@ If no flag is provided, determine the most recently completed epic by reading st
 
 ### 2a. Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
 ### 2b. Load Sprint Context
 
-Read from `SPRINT_DIR/`:
+Read from `SPEC_DIR/`:
 - `architecture-decisions.md` — decisions that implementations must comply with
 - `requirements.md` — FR/NFR source of truth
 - `epics.md` — epic structure and story assignments
@@ -52,14 +53,14 @@ Read from `SPRINT_DIR/`:
 Based on parsed arguments, build the list of epics to review.
 
 For each epic in scope, collect:
-- All story files in `SPRINT_DIR/stories/{epic}-*.md`
+- All story files in `SPEC_DIR/stories/{epic}-*.md`
 - Filter to stories with `status: done` (skip `ready-for-dev`, `in-progress`, `blocked`, `failed`)
 - If an epic has zero completed stories, skip it and note: "Epic {N}: no completed stories to review."
 
 ### 2d. Create Reviews Directory
 
 ```bash
-mkdir -p SPRINT_DIR/reviews
+mkdir -p STATE_DIR/reviews
 ```
 
 ---
@@ -77,13 +78,13 @@ You are reviewing the implementation of Epic {N}: {epic_title} from a sprint pla
 
 ## Sprint Context
 
-Architecture decisions: SPRINT_DIR/architecture-decisions.md
-Requirements: SPRINT_DIR/requirements.md
+Architecture decisions: SPEC_DIR/architecture-decisions.md
+Requirements: SPEC_DIR/requirements.md
 
 ## Stories to Review
 
 {for each completed story in this epic}
-Story file: SPRINT_DIR/stories/{story_file}
+Story file: SPEC_DIR/stories/{story_file}
 {end for}
 
 ## Review Process
@@ -109,7 +110,7 @@ For each completed story:
 
 ## Output
 
-Write your review to: SPRINT_DIR/reviews/epic-{N}-review.md
+Write your review to: STATE_DIR/reviews/epic-{N}-review.md
 
 Use this format:
 
@@ -165,7 +166,7 @@ Equivalent to `/reconcile --epic={N} --auto` with `run_in_background=True`. Auto
 
 Skip if the epic had fewer than 2 completed stories (nothing to reconcile).
 
-Reconciliation report lands in `SPRINT_DIR/reviews/reconciliation-epic-{N}.md`.
+Reconciliation report lands in `STATE_DIR/reviews/reconciliation-epic-{N}.md`.
 
 ---
 
@@ -182,7 +183,7 @@ After all reviews complete, present a summary to the user:
   Epic {N}: {epic_title}
     Status: {approved / approved with concerns / needs attention}
     AC pass rate: {pass}/{total}
-    Review: SPRINT_DIR/reviews/epic-{N}-review.md
+    Review: STATE_DIR/reviews/epic-{N}-review.md
   {end for}
 
   {if any epic needs attention}

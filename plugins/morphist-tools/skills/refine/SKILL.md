@@ -60,13 +60,14 @@ Valid phases: requirements, sprint-scoping, architecture, epics, stories, enrich
 
 ### Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `SPRINT_DIR/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 
 ### Validate Phase Completion
 
@@ -118,13 +119,13 @@ Load ONLY the artifact file for the specified phase (context shedding).
 | Phase | Artifact Path |
 |-------|--------------|
 | prd | `.omc/sprint-plan/prd-{slug}.md` (most recent by mtime) |
-| requirements | `SPRINT_DIR/requirements.md` |
-| sprint-scoping | `SPRINT_DIR/sprint-scope.md` |
-| architecture | `SPRINT_DIR/architecture-decisions.md` |
-| epics | `SPRINT_DIR/epics.md` |
-| stories | `SPRINT_DIR/epics.md` (stories sections) |
-| enrichment | All files in `SPRINT_DIR/stories/` |
-| retro | `SPRINT_DIR/retrospective.md` |
+| requirements | `SPEC_DIR/requirements.md` |
+| sprint-scoping | `SPEC_DIR/sprint-scope.md` |
+| architecture | `SPEC_DIR/architecture-decisions.md` |
+| epics | `SPEC_DIR/epics.md` |
+| stories | `SPEC_DIR/epics.md` (stories sections) |
+| enrichment | All files in `SPEC_DIR/stories/` |
+| retro | `SPEC_DIR/retrospective.md` |
 
 ### Scoped artifact loading
 
@@ -357,8 +358,10 @@ Activated when `--epic=N` (or `--story=N.M`) is used without a phase name. This 
 
 ### 10a. Load Context
 
-Read from `SPRINT_DIR/`:
+Read from `STATE_DIR/`:
 - `phase-state.json` — execution status, epic status
+
+Read from `SPEC_DIR/`:
 - `architecture-decisions.md` — current ADRs
 - `epics.md` — epic definitions and dependencies
 - `requirements.md` — traced requirements
@@ -590,7 +593,7 @@ Decision Graph for Epic {N}:
 
 ## 12. Decision Graph
 
-The decision graph is a persistent artifact at `SPRINT_DIR/decision-graph.md` mapping architecture decisions to dependent stories.
+The decision graph is a persistent artifact at `SPEC_DIR/decision-graph.md` mapping architecture decisions to dependent stories.
 
 ### 12a. Format
 

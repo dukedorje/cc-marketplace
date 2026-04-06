@@ -1,38 +1,47 @@
 # Sprint Resolution Protocol
 
-All morphist-tools skills that operate on sprint artifacts must resolve the target sprint directory before accessing any files. This enables concurrent sprints by decoupling skills from the `current` symlink singleton.
+All morphist-tools skills that operate on sprint artifacts must resolve the target sprint directories before accessing any files. Sprint artifacts are split between two locations:
+
+- **`SPEC_DIR`** — Committed spec artifacts (`docs/sprints/{NNN}-{slug}/`): requirements, architecture decisions, epics, stories, discovery, retrospective. These represent intent and are version-controlled.
+- **`STATE_DIR`** — Ephemeral operational state (`.omc/sprint-plan/sprint-{NNN}/`): phase-state.json, execution logs, reviews, work-log. Gitignored.
+
+The bridge between them is `STATE_DIR/phase-state.json`, which contains a `spec_dir` field pointing to the corresponding `SPEC_DIR`.
 
 ## Resolution Order
 
-Resolve `SPRINT_DIR` using the first match:
+Resolve the sprint using the first match:
 
-1. **Explicit argument** — If `--sprint=<id>` was provided (e.g., `--sprint=sprint-002`), use `.omc/sprint-plan/<id>/`
-2. **Session state** — If `state_read` is available, read key `morphist.active_sprint`. If set, use `.omc/sprint-plan/<value>/`
-3. **Current symlink** — If `.omc/sprint-plan/current` symlink exists, follow it
+1. **Explicit argument** — If `--sprint=<id>` was provided (e.g., `--sprint=sprint-002`), use `.omc/sprint-plan/<id>/` as `STATE_DIR`
+2. **Session state** — If `state_read` is available, read key `morphist.active_sprint`. If set, use `.omc/sprint-plan/<value>/` as `STATE_DIR`
+3. **Current symlink** — If `.omc/sprint-plan/current` symlink exists, follow it as `STATE_DIR`
 4. **No sprint found** — Halt: `No active sprint found. Run /sprint-plan first, or pass --sprint=<id>.`
 
-After resolving, verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+After resolving `STATE_DIR`, verify `STATE_DIR/phase-state.json` exists. If not, halt with the same message.
+
+Then read `phase-state.json` and set `SPEC_DIR` from its `spec_dir` field. Verify `SPEC_DIR` exists.
 
 ## Usage in Skills
 
 Every skill that reads or writes sprint artifacts must:
 
 1. Include `[--sprint=ID]` in its `argument-hint` frontmatter (user-invocable skills only)
-2. Resolve `SPRINT_DIR` using the protocol above as the first step of initialization
-3. Use `SPRINT_DIR/` as the prefix for all artifact paths (e.g., `SPRINT_DIR/phase-state.json`, `SPRINT_DIR/stories/`, `SPRINT_DIR/architecture-decisions.md`)
+2. Resolve `STATE_DIR` and `SPEC_DIR` using the protocol above as the first step of initialization
+3. Use `SPEC_DIR/` as the prefix for spec artifact paths (requirements.md, architecture-decisions.md, epics.md, stories/, discovery.md, retrospective.md, etc.)
+4. Use `STATE_DIR/` as the prefix for operational state paths (phase-state.json, work-log.md, reviews/, etc.)
 
 ### Inline Preamble (copy into skill Section 1)
 
 ```markdown
 ### Sprint Resolution
 
-Resolve the target sprint directory (`SPRINT_DIR`):
-1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `SPRINT_DIR` = `.omc/sprint-plan/<id>/`
-2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `SPRINT_DIR` = `.omc/sprint-plan/<value>/`
-3. Else if `.omc/sprint-plan/current` symlink exists, `SPRINT_DIR` = `.omc/sprint-plan/current/`
+Resolve the target sprint directories:
+1. If `--sprint=<id>` was provided in `$ARGUMENTS`, set `STATE_DIR` = `.omc/sprint-plan/<id>/`
+2. Else if `state_read` is available, read key `morphist.active_sprint`. If set, `STATE_DIR` = `.omc/sprint-plan/<value>/`
+3. Else if `.omc/sprint-plan/current` symlink exists, `STATE_DIR` = `.omc/sprint-plan/current/`
 4. Otherwise halt: "No active sprint found. Run `/sprint-plan` first, or pass `--sprint=<id>`."
 
-Verify `SPRINT_DIR/phase-state.json` exists. If not, halt with the same message.
+Verify `STATE_DIR/phase-state.json` exists. Read it and set `SPEC_DIR` from the `spec_dir` field.
+Verify `SPEC_DIR` exists. If not, halt: "Sprint spec directory not found at {spec_dir}. Sprint may need re-initialization."
 ```
 
 ## Registering Active Sprint
@@ -48,7 +57,7 @@ This allows other skills invoked in the same session to automatically target the
 
 Multiple sprints can be active simultaneously when:
 - Different conversations each bind to different sprints via session state
-- Different worktrees each have their own `.omc/sprint-plan/` directory
+- Different worktrees each have their own `.omc/sprint-plan/` and `docs/sprints/` directories
 - Users explicitly pass `--sprint=<id>` to target a specific sprint
 
 The `current` symlink remains as a convenience default (last-touched sprint) but is no longer the sole mechanism for sprint targeting.

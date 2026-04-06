@@ -14,8 +14,8 @@ Generates formatted progress reports for epic completion or full sprint completi
 
 This skill is called with context about which epic just completed. It reads:
 - `phase-state.json` for `epic_status`, `execution_log`, `sprint_number`
-- Story files in `SPRINT_DIR/stories/{N}-*` for the completed epic
-- `SPRINT_DIR/epics.md` for epic titles and next-epic information
+- Story files in `SPEC_DIR/stories/{N}-*` for the completed epic
+- `SPEC_DIR/epics.md` for epic titles and next-epic information
 
 ---
 
@@ -31,8 +31,8 @@ For each completed story in the epic, read:
 - Story frontmatter: `status`
 
 Also read:
-- `SPRINT_DIR/architecture-decisions.md` for referenced ADR titles
-- `SPRINT_DIR/epics.md` for epic title and next-epic info
+- `SPEC_DIR/architecture-decisions.md` for referenced ADR titles
+- `SPEC_DIR/epics.md` for epic title and next-epic info
 
 ### 2b. Epic Narrative Summary
 
@@ -146,7 +146,7 @@ Show contextual options based on epic outcome. Only show options that are releva
   {/if}
 
   {if background_review}
-  Background review dispatched → SPRINT_DIR/reviews/epic-{N}-review.md
+  Background review dispatched → STATE_DIR/reviews/epic-{N}-review.md
   {/if}
 ═══════════════════════════════════════════════════
 ```
@@ -157,7 +157,7 @@ Wait for user input before proceeding.
 
 - **go**: Proceed to next epic
 - **enrich N.M**: Run enrichment for that specific story (invoke Phase 4 enrichment for just that story), then return to the menu
-- **redirect**: Present the learnings and user feedback to a planner (sonnet) agent that reads the next epic's stories from `SPRINT_DIR/epics.md` and proposes adjustments. Show proposed changes, let user approve/modify, then update the stories.
+- **redirect**: Present the learnings and user feedback to a planner (sonnet) agent that reads the next epic's stories from `SPEC_DIR/epics.md` and proposes adjustments. Show proposed changes, let user approve/modify, then update the stories.
 - **replan**: Invoke `/replan` skill
 - **yolo**: Set `huddle_mode: "skip"` in `phase-state.json` so remaining epics auto-continue without huddles
 - **hold**: Stop execution, preserve `resume_point` in `phase-state.json`

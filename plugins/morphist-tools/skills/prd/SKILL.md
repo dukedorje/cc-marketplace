@@ -299,9 +299,9 @@ Generate a slug from the PRD title:
 - Max 40 characters
 - Example: "User Authentication System" → `user-authentication-system`
 
-Save path: `.omc/sprint-plan/prd-{slug}.md`
+Save path: `docs/prd-{slug}.md`
 
-Ensure `.omc/sprint-plan/` directory exists. Create it if not.
+Ensure `docs/` directory exists. Create it if not.
 
 Write the PRD to the save path.
 
@@ -414,31 +414,31 @@ Display the validation summary and next step:
 
 **If status is `validated`:**
 ```
-PRD saved to .omc/sprint-plan/prd-{slug}.md
+PRD saved to docs/prd-{slug}.md
 
 Validation: PASSED
 - Auto-fixes applied: {count}
 - Warnings: {count}
 - Blockers: 0
 
-Run `/sprint-plan .omc/sprint-plan/prd-{slug}.md` to begin sprint planning.
+Run `/sprint-plan docs/prd-{slug}.md` to begin sprint planning.
 ```
 
 **If status is `validated-with-warnings` (--fast mode):**
 ```
-PRD saved to .omc/sprint-plan/prd-{slug}.md
+PRD saved to docs/prd-{slug}.md
 
 Validation: PASSED WITH WARNINGS (--fast mode)
 - Auto-fixes applied: {count}
 - Warnings: {count} (including {blocker-count} downgraded from blocker)
 
-Run `/sprint-plan .omc/sprint-plan/prd-{slug}.md` to begin sprint planning.
+Run `/sprint-plan docs/prd-{slug}.md` to begin sprint planning.
 Note: Resolve warnings before production use.
 ```
 
 **If status is `draft-with-issues`:**
 ```
-PRD saved to .omc/sprint-plan/prd-{slug}.md
+PRD saved to docs/prd-{slug}.md
 
 Validation: ISSUES FOUND
 - Auto-fixes applied: {count}
@@ -448,7 +448,7 @@ Validation: ISSUES FOUND
 Blocking issues:
 {list each blocker with a 1-line description}
 
-Resolve these issues manually by editing .omc/sprint-plan/prd-{slug}.md, then re-run `/prd` on the updated file or proceed to `/sprint-plan` at your own discretion.
+Resolve these issues manually by editing docs/prd-{slug}.md, then re-run `/prd` on the updated file or proceed to `/sprint-plan` at your own discretion.
 ```
 
 ---
@@ -468,7 +468,7 @@ Resolve these issues manually by editing .omc/sprint-plan/prd-{slug}.md, then re
 
 `prd` is a valid target in the `/refine` skill.
 
-- **Artifact path**: `.omc/sprint-plan/prd-{slug}.md` (most recent by mtime if no explicit path given)
+- **Artifact path**: `docs/prd-{slug}.md` (most recent by mtime if no explicit path given)
 - **RALPLAN-DR pass**: Planner proposes improvements → Architect challenges → Critic arbitrates
 - **Downstream stale marking**: Does NOT mark downstream phases stale (PRD is an upstream artifact; sprint-plan phases are downstream and not tracked in PRD's phase-state)
 

@@ -44,13 +44,13 @@ You are decomposing Epic {epic_num}: {epic_title} into implementation-ready stor
 {epic_content_from_epics_md_for_this_epic}
 
 ## ALL Epics (for context — understand scope boundaries, avoid overlap)
-Read the full epic plan from: SPRINT_DIR/epics.md
+Read the full epic plan from: SPEC_DIR/epics.md
 
 ## Architecture Decisions
-Read the full architecture decisions from: SPRINT_DIR/architecture-decisions.md
+Read the full architecture decisions from: SPEC_DIR/architecture-decisions.md
 
 ## Requirements
-Read the full requirements from: SPRINT_DIR/requirements.md
+Read the full requirements from: SPEC_DIR/requirements.md
 
 ## Rules
 - Size each story for single dev agent completion (~1-4 hours of focused work)
@@ -108,10 +108,10 @@ Decisions: {decisions}
 Technical Notes: {technical_notes}
 
 ## Architecture Decisions (for context)
-Read from: SPRINT_DIR/architecture-decisions.md
+Read from: SPEC_DIR/architecture-decisions.md
 
 ## Requirements (for FR details)
-Read from: SPRINT_DIR/requirements.md
+Read from: SPEC_DIR/requirements.md
 
 ## Rules
 - Use Given/When/Then format exactly
@@ -158,10 +158,10 @@ Scan all story stubs for cross-epic consistency issues.
 {all_story_stubs_across_all_epics}
 
 ## Epic Plan
-Read from: SPRINT_DIR/epics.md
+Read from: SPEC_DIR/epics.md
 
 ## Requirements
-Read from: SPRINT_DIR/requirements.md
+Read from: SPEC_DIR/requirements.md
 
 Check for:
 1. **Duplicate stories**: Two stories across different epics covering the same FR or building the same feature
@@ -207,7 +207,7 @@ After processing all stories for all epics, compute and record health metrics:
 
 ### Step 5: Update epics.md
 
-Append stories and health metrics directly to `SPRINT_DIR/epics.md` under each epic section.
+Append stories and health metrics directly to `SPEC_DIR/epics.md` under each epic section.
 
 ---
 
@@ -251,7 +251,7 @@ Append stories and health metrics directly to `SPRINT_DIR/epics.md` under each e
 
 ## State Updates
 
-After this phase completes, update `SPRINT_DIR/phase-state.json`:
+After this phase completes, update `STATE_DIR/phase-state.json`:
 - `current_phase`: `"story-enrichment"`
 - `stories_total`: total story count across all epics
 

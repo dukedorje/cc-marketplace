@@ -132,7 +132,7 @@ This regeneration ensures `active-decisions.md` is always accurate as of the cur
 
 ### Step 8: Write Output
 
-Write all findings to `SPRINT_DIR/discovery.md` using the schema below.
+Write all findings to `SPEC_DIR/discovery.md` using the schema below.
 
 ---
 
@@ -208,14 +208,14 @@ Agent(
 You are running Phase 0: Intake & Discovery for the sprint-plan workflow.
 
 Working directory: {working_directory}
-Sprint directory: SPRINT_DIR/
+Sprint directory: SPEC_DIR/
 Sprint number: {sprint_number}
 User input: {user_input_or_none}
 
 Follow the Phase 0 instructions in full:
 .omc/sprint-plan/ → plugins/sprint-plan/skills/sprint-plan/phases/phase-0-discovery.md
 
-Execute all 8 steps in order. Write output to SPRINT_DIR/discovery.md.
+Execute all 8 steps in order. Write output to SPEC_DIR/discovery.md.
 Do not ask for confirmation. Complete the phase and return when done.
 """,
 )
