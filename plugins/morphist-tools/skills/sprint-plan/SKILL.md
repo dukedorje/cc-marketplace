@@ -2,7 +2,7 @@
 name: sprint-plan
 description: Multi-phase sprint planning workflow that transforms product ideas into implementation-ready user stories with architecture decisions, requirements expansion, and adversarial validation
 user-invocable: true
-argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--auto] [--step] [--sprint-size=SIZE] [--continue[=phase]] [--restart-from=phase] [--sprint=ID] [--product=<name>]"
+argument-hint: "[product-idea-or-prd-path] [--fast] [--thorough] [--auto] [--step] [--sprint-size=SIZE] [--write-stories] [--skip-stories] [--continue[=phase]] [--restart-from=phase] [--sprint=ID] [--product=<name>]"
 ---
 
 # Sprint Plan — Thin Orchestrator
@@ -23,9 +23,10 @@ Parse `$ARGUMENTS` for:
 
 | Flag | Effect |
 |------|--------|
-| `--fast` | Single-pass, no RALPLAN-DR, AUTONOMOUS steering, implies `--auto`, skip enrichment |
-| `--thorough` | Full consensus, GUIDED steering, refinement loops, enrich all stories |
-| `--enrich` | Force Phase 4 enrichment even in default mode (default skips enrichment) |
+| `--fast` | Single-pass, no RALPLAN-DR, AUTONOMOUS steering, implies `--auto`, skip story-writing |
+| `--thorough` | Full consensus, GUIDED steering, refinement loops, write full stories for all |
+| `--write-stories` | Force Phase 4 story-writing regardless of size gate |
+| `--skip-stories` | Force-skip Phase 4 even if size gate would recommend it |
 | `--auto` | No inter-phase pauses (only Decision Steering can pause) |
 | `--step` | Pause after every phase |
 | `--sprint-size=SIZE` | `focused` (3-8 stories), `standard` (8-18, default), `ambitious` (15-30) |
@@ -35,9 +36,15 @@ Parse `$ARGUMENTS` for:
 | `--sprint=ID` | Target a specific sprint (e.g., `--sprint=sprint-002`). For `--continue`/`--restart-from`, operates on this sprint instead of the most recent. For new sprints, ignored. |
 | `--product=<name>` | Associate this sprint with a product dimension. Writes `product` field to phase-state.json and requirements.md frontmatter. If omitted and the product input is a PRD path under `docs/products/{name}/`, auto-infer the product from the path. |
 
-**Precedence**: `--thorough` > `--fast`. `--restart-from` > `--continue`. `--step` > `--auto`. `--fast` implies `--auto`. `--thorough` implies `--enrich`.
+**Precedence**: `--thorough` > `--fast`. `--restart-from` > `--continue`. `--step` > `--auto`. `--fast` implies `--auto` + `--skip-stories`. `--thorough` implies `--write-stories`. `--write-stories` > `--skip-stories` (explicit opt-in wins).
 
-**Default mode** (neither `--fast` nor `--thorough`): Single-pass architecture and epic design, GUIDED steering at key decision points, skip Phase 4 enrichment (stories go to execution as stubs with BDD criteria — enrichment is on-demand during execution). This is the huddle-driven workflow: plan light, execute an epic, huddle, repeat.
+**Default mode** (neither `--fast` nor `--thorough`): Single-pass architecture and epic design, GUIDED steering at key decision points. Phase 4 "write stories" is **size-gated** by default:
+
+- ≤ 5 stories AND no `large`/`thorough`/3+-decision stories → skip (stubs fine)
+- 6–15 stories OR any flagged story → prompt the user at Phase 3.5 (elaborated below)
+- 16+ stories OR any `sprint-size=ambitious` → default to write-all (user can opt out with `--skip-stories`)
+
+This is the huddle-driven workflow: plan light when the sprint is small, write proper stories when complexity warrants, execute an epic, huddle, repeat.
 
 ---
 
@@ -139,7 +146,8 @@ Execute phases sequentially. For each phase:
 | 2A: Architecture | `phase-2a-architecture.md` | **Yes** | **Max Active** | `architecture-decisions.md` |
 | 2B: Epic Design | `phase-2b-epic-design.md` | step only | Active | `epics.md` |
 | 3: Stories | `phase-3-story-decomposition.md` | step only | Dormant | Updates `epics.md` |
-| 4: Enrichment | `phase-4-story-enrichment.md` | step only | Dormant | `stories/*.md` | **Skipped by default** — runs only with `--thorough` or `--enrich` |
+| 3.5: Write-Stories Gate | *(inline — see Phase-Specific Notes)* | **Yes** | Dormant | user choice → feeds Phase 4 or skips |
+| 4: Write Stories | `phase-4-write-stories.md` | step only | Dormant | `stories/*.md` | **Size-gated** — skipped if ≤5 simple stories, prompted at 6–15, default-write at 16+ |
 | 5: Validation | `phase-5-validation.md` | Informational | Dormant | `readiness-report.md` |
 
 ### Phase-Specific Notes
@@ -148,7 +156,37 @@ Execute phases sequentially. For each phase:
 - **Phase 2A refinement loop** (thorough only): If decisions create new requirements, loop back to Phase 1 (incremental), then re-run 2A. Max 3 iterations via `refinement_loops.requirements_architecture.count`.
 - **Phase 2B**: Single planner pass with inline validation (default and fast modes). Full RALPLAN-DR consensus only in `--thorough` mode.
 - **Phase 3**: All epics decompose in parallel (each planner gets full `epics.md` for context). BDD writers fire in parallel across all stories. Post-decomposition reconciliation scan catches cross-epic issues. Each story gets a `test_tier` (yolo/smoke/thorough) based on risk — defaults to smoke.
-- **Phase 4** (skipped by default): Enrichment runs only with `--thorough` or `--enrich`. In the default workflow, stories go to execution as stubs with BDD criteria. Enrichment is available on-demand during execution via the inter-epic huddle (`[enrich N.M]`), or when sprint-exec detects a complex story that would benefit from it.
+
+- **Phase 3.5 — Write-Stories Gate (size-gated, inline prompt)**: After Phase 3 decomposition, count stories and flag risky ones. "Flagged" = `complexity=large` OR `test_tier=thorough` OR references ≥3 architecture decisions OR references any decision marked `research-backed` without a prior spike artifact (see `/spike` skill).
+
+  Present the user with:
+
+  ```
+  Sprint {NNN} decomposition: {N} stories across {M} epics.
+
+  Flagged for story-writing (stub alone may not be enough):
+    {list each flagged story with reason}
+
+  Write full stories before execution?
+
+  [write-all]     Expand every story as a full spec (~30s each × {N} stories)
+  [write-flagged] Expand only the {K} flagged stories (recommended)  ← default for 6–15 stories
+  [keep-stubs]    Proceed with stubs (risky if flagged stories exist)
+  [iterate-plan]  Go back to Phase 2B or 3 before committing
+
+  Default (auto-continues in 15s): [write-flagged] if any flagged; else [keep-stubs]
+  ```
+
+  Override behavior:
+  - `--fast` / `--skip-stories` → skip this gate, keep stubs
+  - `--thorough` / `--write-stories` → skip this gate, [write-all]
+  - `--auto` / `--full-auto` → apply the default without prompting
+  - `--step` → always prompt regardless of size
+
+  Record user choice in `phase-state.json`: `stories_gate_decision: "write-all"|"write-flagged"|"keep-stubs"` with `stories_gate_reason` noting the auto-default vs. explicit override.
+
+- **Phase 4**: Runs only if Phase 3.5 gate chose `write-all` or `write-flagged`. When `write-flagged`, fan out only for flagged stories (not all). Unflagged stories ship as stubs.
+
 - **Phase 5**: Sonnet verifier only (no opus critic). Auto-fix loop (max 2 iterations). Readiness report always shown.
 
 ### Inter-Phase Summary & Pause
@@ -188,7 +226,9 @@ Single source of truth. Update after every phase transition:
 
 When a phase is re-run, mark all downstream phases stale. Re-run stale phases in order before proceeding.
 
-**Propagation chain**: `discovery` → `requirements` → `sprint-scoping` → `ux-design` → `architecture` → `epic-design` → `story-decomposition` → `story-enrichment` → `validation`
+**Propagation chain**: `discovery` → `requirements` → `sprint-scoping` → `ux-design` → `architecture` → `epic-design` → `story-decomposition` → `write-stories` → `validation`
+
+(Prior versions used `story-enrichment` at this position; the field is renamed to `write-stories` but readers should accept both names for back-compat when processing existing `phase-state.json` files.)
 
 ### OMC State (optional)
 

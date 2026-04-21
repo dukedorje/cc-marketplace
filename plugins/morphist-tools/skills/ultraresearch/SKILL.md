@@ -159,9 +159,10 @@ Agent(
   1. Cross-reference all findings by theme
   2. Draft the narrative synthesis with inline citations
   3. Run verification checks (citation audit, coverage, claim validation)
-  4. Write TWO files:
-     - synthesis.md (narrative output with verification section)
-     - summary.json (machine-readable summary)
+  4. For each hypothesis, emit the structured metadata block per the "Per-Hypothesis Spike Metadata" schema in the ultraresearch SKILL.md. Be honest: `confidence: high` requires reproducible evidence; `version-pinned` is mandatory for any library-API claim; `spike-required` is auto-derived from confidence + verification.
+  5. Write TWO files:
+     - synthesis.md (narrative output with per-hypothesis spike metadata + verification section)
+     - summary.json (machine-readable summary with the hypotheses array)
   """
 )
 ```
@@ -214,7 +215,7 @@ they already have, reducing redundant exploration.
 
 After completion, ultra-research guarantees these files exist at `{{OUTPUT_DIR}}`:
 
-1. **`synthesis.md`** — the full narrative output (always present)
+1. **`synthesis.md`** — the full narrative output (always present). MUST embed a structured metadata block for each hypothesis, near the top of the document, with the schema below.
 2. **`summary.json`** — a machine-readable summary for agent callers:
 
 ```json
@@ -228,7 +229,22 @@ After completion, ultra-research guarantees these files exist at `{{OUTPUT_DIR}}
     {
       "finding": "one-sentence finding",
       "confidence": "low|medium|high",
+      "verification": "empirically-tested|inferred-from-source|docs-only",
+      "version_pinned": "library@version or null",
+      "spike_required": true,
       "sources": ["hypotheses/foo/findings.md", "https://..."]
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "claim": "one-sentence claim",
+      "confidence": "low|medium|high",
+      "verification": "empirically-tested|inferred-from-source|docs-only",
+      "version_pinned": "library@version or null",
+      "spike_required": true,
+      "spike_prompt": "concrete test the caller should run to validate",
+      "spike_artifact": null
     }
   ],
   "open_questions": ["..."],
@@ -239,6 +255,45 @@ After completion, ultra-research guarantees these files exist at `{{OUTPUT_DIR}}
   "output_dir": "..."
 }
 ```
+
+### Per-Hypothesis Spike Metadata (required in synthesis.md)
+
+Each hypothesis the synthesis references MUST carry a structured YAML frontmatter-style block, either at the top of the document under `## Hypothesis Metadata` or inline inside the hypothesis's section. The schema:
+
+```yaml
+- id: H3                             # stable identifier used by decisions.md citations
+  claim: "one-sentence claim"        # what the hypothesis asserts
+  confidence: medium                 # low | medium | high
+  verification: inferred-from-source # empirically-tested | inferred-from-source | docs-only
+  # empirically-tested: the research agent ran code / reproduced it and recorded evidence
+  # inferred-from-source: read the library source or an authoritative doc, did not run
+  # docs-only: relied on external tutorials / blog posts / forum threads
+
+  version-pinned: playcanvas@2.17.2  # REQUIRED whenever the claim cites library behavior
+                                     # (null only if the claim is version-independent)
+  spike-required: true               # auto-derived:
+                                     # true  iff confidence != high OR verification != empirically-tested
+                                     # false iff confidence == high AND verification == empirically-tested
+
+  spike-prompt: |                    # agent's best guess at a minimal test
+    "Build the smallest repro: load any SOG with unified:true,
+    setWorkBufferModifier with a sin-wave shader on modifySplatCenter,
+    assert canvas hash changes between two frames 900ms apart."
+
+  spike-artifact: null               # path to docs/spikes/{id}/finding.md
+                                     # populated by the /spike skill after validation;
+                                     # null until then
+```
+
+**Calibration rules** — the synthesizer must apply these honestly:
+- `confidence: high` requires BOTH `verification: empirically-tested` AND a cited evidence artifact (log snippet, screenshot, test command and result). If the agent can't produce the evidence, downgrade to `medium`.
+- `version-pinned` is mandatory whenever a claim cites library API behavior. "PlayCanvas 2.13–2.16" ≠ "PlayCanvas 2.17" — do not omit the version and do not paper over a range mismatch.
+- `spike-required` is automatically `true` unless both `confidence == high` AND `verification == empirically-tested`. The synthesizer must not lower this flag without evidence.
+- Downstream consumers (sprint-exec's spike-gate, `/replan`) enforce this metadata. Outputs without it will be treated as `confidence: low` by default, forcing a spike.
+
+### Why this exists (from sprint-004 retro)
+
+In sprint-004, an ultraresearch synthesis output read like a verified prescription. In fact two of its recommendations were unvalidated hypotheses — the recipe for Blocker B didn't work when applied. The fix landed only after the team built three spike pages to empirically test the mechanism. The spike-metadata contract above makes the calibration visible so downstream consumers can make the right gate decisions.
 
 3. **`decomposition.md`** — the hypothesis tree (always present)
 4. **`hypotheses/*/findings.md`** — individual findings (always present)

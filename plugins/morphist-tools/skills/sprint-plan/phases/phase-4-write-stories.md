@@ -1,6 +1,10 @@
-# Phase 4: Story Enrichment
+# Phase 4: Write Stories
 
 **Purpose**: Transform story stubs from epics.md into comprehensive implementation guides that prevent developer agent mistakes.
+
+**When to run**: Size-gated (see `sprint-plan/SKILL.md` Phase Chain). For sprints ≥ 6 stories OR containing any `large` / `thorough` / 3+-decision story, this phase is recommended — it lets each executor work against a complete spec instead of guessing intent from a stub. For toy sprints (≤ 5 simple stories), stubs are often fine.
+
+**Naming note**: Earlier versions called this phase "enrichment" or "elaboration". Both terms are deprecated. The canonical user-facing term is "write stories" (or "story writing"). File path kept as `phase-4-write-stories.md`; state-file field `stories_enriched` kept for backward compat with existing sprint artifacts — read as "stories written".
 
 **Decision Steering**: Dormant. All significant decisions were made in Phases 1-2.
 

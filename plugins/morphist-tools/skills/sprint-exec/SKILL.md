@@ -132,25 +132,90 @@ For each eligible story, build a task object:
 
 Group tasks by epic for sequential epic dispatch.
 
-### 3e. Pre-Execution Enrichment Check
+### 3e. Pre-Execution Story-Writing Check
 
-For each epic about to execute, scan its stories for enrichment candidates. A story is flagged if ALL of:
-- No enriched story file exists (`source: "stub"`)
-- Complexity is `large` OR it references 3+ architecture decisions OR `test_tier` is `thorough`
+Phase 4 "write stories" is the sprint-plan step that turns one-line story stubs into full implementation specs. If the user skipped it at plan time but the sprint now contains stories that would benefit, warn before dispatching.
 
-If candidates are found and not in `--full-auto` mode, suggest enrichment:
+For each epic about to execute, scan its stories for story-writing candidates. A story is flagged if ALL of:
+- No written story file exists (`source: "stub"`)
+- Complexity is `large` OR references ≥3 architecture decisions OR `test_tier` is `thorough`
+
+If candidates are found and not in `--full-auto` mode, prompt:
 
 ```
-Stories that may benefit from enrichment before execution:
+{K} of {N} stories in epic {E} are flagged for story-writing (stub alone may not be enough):
   ⚠ Story {N.M}: {title} — {reason}
 
-[enrich]  → Enrich flagged stories (adds ~1 min per story)
-[skip]    → Execute from stubs (default in 10 seconds)
+[write]  → Run Phase 4 for flagged stories now, then dispatch (~30s/story)
+[skip]   → Execute from stubs as-is (default in 10s)
 ```
 
-Auto-skip after 10 seconds if no response. In `--full-auto` mode, always skip.
+Auto-skip after 10 seconds if no response. In `--full-auto` mode, always skip (full-auto respects the planning-time decision without re-prompting).
 
-If the user chooses `[enrich]`, run Phase 4 enrichment for only the flagged stories, then proceed to dispatch.
+If the user chooses `[write]`, run Phase 4 "write stories" for only the flagged stories, then proceed to dispatch.
+
+**Back-compat**: previous versions of this skill called this step the "Enrichment Check" and used `[enrich]`/`[skip]` labels. Both terminologies reference the same mechanism.
+
+---
+
+### 3f. Pre-Execution Spike Gate
+
+Before dispatching any story that references a decision derived from an ultraresearch synthesis, check whether the underlying hypotheses have been empirically validated.
+
+**Procedure** for each story in scope:
+
+1. For each decision ID referenced in the story's frontmatter (`decisions: [D-NNN, …]`), open `SPEC_DIR/architecture-decisions.md` and read the decision block.
+2. Look for citations of the form `synthesis.md §{hypothesis-id}` or `[RESEARCH-BACKED]` tag combined with a `research_artifacts` reference in `phase-state.json`.
+3. For each cited hypothesis, open the research artifact (`{path}/synthesis.md`) and look for the hypothesis's structured metadata:
+   ```yaml
+   - id: H3
+     confidence: low | medium | high
+     verification: empirically-tested | inferred-from-source | docs-only
+     version-pinned: <library>@<version>
+     spike-required: true | false
+     spike-artifact: docs/spikes/<id>/finding.md  # present only if a spike has been run
+   ```
+4. A hypothesis is **unvalidated** if `spike-required: true` AND `spike-artifact` is missing/empty, OR if `verification != empirically-tested` AND `confidence != high`.
+
+If any referenced story has an unvalidated hypothesis, halt before dispatch:
+
+```
+Spike gate: story {N.M} references decision {D-NNN} which cites hypothesis {H-id}:
+
+  claim:         "{hypothesis claim, trimmed}"
+  confidence:    {level}
+  verification:  {state}
+  version-pinned:{library@version, or "unpinned"}
+
+This hypothesis has NOT been empirically validated. Landing the story before
+verifying risks the sprint-004 failure mode (D-002 v1 → v3 journey).
+
+Options:
+  [spike]     Dispatch /spike --hypothesis={H-id} — time-boxed 30–120m  ← recommended
+  [override]  Proceed anyway (logs a warning to execution_log + replan-log)
+  [skip]      Skip this story for now, continue with others
+
+Default behavior:
+  --auto        → prompt (like default)
+  --full-auto   → [spike] (never silently roll forward on unvalidated research)
+  --stop-at=critical+user-approved decisions → [override] (user has already accepted risk)
+```
+
+When the user chooses `[spike]`:
+1. Invoke the `/spike` skill with the hypothesis prompt (extracted from the synthesis's `spike-prompt` field, or constructed from the claim if absent).
+2. `/spike` produces `docs/spikes/{H-id}/finding.md` with a go/no-go verdict and an evidence artifact (code, screenshot, log excerpt, test result).
+3. If the spike returns **go**: update the synthesis.md to set `spike-artifact: docs/spikes/{H-id}/finding.md` and bump `confidence: high` + `verification: empirically-tested`. Resume dispatch.
+4. If the spike returns **no-go**: halt + invoke `/replan --decision={D-NNN} --reason="spike disproved H-id"`. The replan flow will revise the decision and re-trigger sprint-exec.
+
+When the user chooses `[override]`:
+1. Append a spike-override entry to `phase-state.json → execution_log`:
+   ```json
+   { "ts": "…", "event": "spike-gate-override", "story": "N.M", "decision": "D-NNN", "hypothesis": "H-id", "reason": "user-accepted-risk" }
+   ```
+2. Record the same in `SPEC_DIR/replan-log.md` under a "Spike Overrides" section (create section if absent).
+3. Proceed with dispatch.
+
+**Rationale** (from sprint-004 retro): an ultraresearch synthesis that prescribes a tactical recipe can still be wrong if the underlying hypothesis wasn't empirically tested. The D.R synthesis in sprint-004 was directionally correct but its specific recipes failed when landed — the team burned cycles debugging before a spike surfaced the real pattern. This gate forces a small spike before the big landing, inverting the cost.
 
 ---
 
